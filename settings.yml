@@ -1,0 +1,3 @@
+demandas_category_id:
+  default: ""
+  description: "ID numérico da categoria em que a calculadora deve aparecer. Encontre o ID em /admin/customize/categories."

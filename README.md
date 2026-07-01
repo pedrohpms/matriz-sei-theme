@@ -23,33 +23,38 @@ poucos cliques feita pelo painel administrativo do Discourse.
 
 ## O que ele faz (nesta versão)
 
-O componente está na Iteração 2: os dados e o código da calculadora
-(originalmente no protótipo standalone
-[pedrohpms/matriz-sei](https://github.com/pedrohpms/matriz-sei)) já foram
-migrados para dentro do theme component, mas **ainda não aparece nada
-visualmente no fórum**. O botão que abre a calculadora dentro de um tópico do
-ParticiPEN é a Iteração 3.
+O componente está na Iteração 3: nos tópicos da categoria configurada (ver
+"Configurações" abaixo), aparece um botão **"Abrir na calculadora"** no
+rodapé do tópico. Clicar nele abre a calculadora num modal, já tentando
+preencher os campos a partir do primeiro post do tópico (se ele seguir o
+Form Template do ParticiPEN). O código da calculadora vem do protótipo
+standalone [pedrohpms/matriz-sei](https://github.com/pedrohpms/matriz-sei).
+
+Filtragem por grupo de usuário (além da categoria) fica para a Iteração 5.
 
 ## Estrutura de assets
 
 - `javascripts/discourse/initializers/matriz-sei-calc-init.js` — o código da
   calculadora, carregado pelo Discourse como *initializer* (roda uma vez,
-  quando o fórum inicializa). Nesta iteração ele só carrega os dados de
-  `regua.json`/`tooltips.json` e confirma no console do navegador que rodou
-  (`console.info("Matriz SEI calc initializer carregado")`); ainda não monta
-  a interface.
+  quando o fórum inicializa). Carrega `regua.json`/`tooltips.json`, registra
+  o botão de rodapé do tópico (`api.registerTopicFooterButton`) e contém a
+  lógica que abre o modal, popula os campos a partir do post e monta a
+  interface dentro dele.
 - `javascripts/discourse/regua.json` e `javascripts/discourse/tooltips.json`
   — os dados da régua de critérios e dos textos de ajuda contextual.
   Declarados em `about.json` sob `"assets"`, o que faz o Discourse
   disponibilizá-los por URL própria em runtime (acessível pelo initializer
   via `settings.theme_uploads.regua` e `settings.theme_uploads.tooltips`).
 - `common/common.scss` — o estilo visual da calculadora, escopado sob a
-  classe `.matriz-sei-calc` para não vazar para o resto do fórum.
+  classe `.matriz-sei-calc` para não vazar para o resto do fórum, mais o
+  estilo do overlay do modal (`.matriz-sei-overlay`/`.matriz-sei-dialog`).
 - `common/head_tag.html` — o HTML da calculadora, dentro de um
-  `<template id="matriz-sei-calc-template">`. Um `<template>` não é
-  renderizado automaticamente; ele só vira tela quando algo o clonar para
-  dentro do DOM — isso é o que a Iteração 3 vai fazer, ao abrir a
-  calculadora num modal.
+  `<template id="matriz-sei-calc-template">`. Ao clicar no botão de rodapé,
+  o initializer clona esse template para dentro de um modal próprio (overlay
+  com fundo escurecido, fecha com ESC, clique fora ou no ×).
+- `settings.yml` — a configuração `demandas_category_id` (ver "Configurações"
+  abaixo).
+- `locales/pt_BR.yml` — os textos do botão de rodapé.
 
 ## Como instalar
 
@@ -66,10 +71,16 @@ qualquer theme já em uso no ParticiPEN, sem substituí-lo.
 
 ## Configurações (settings)
 
-Esta versão ainda não possui nenhuma configuração. As opções ajustáveis pelo
-administrador (por exemplo, qual categoria do fórum concentra as demandas do
-SEI) serão introduzidas na Iteração 5 do projeto, junto com o arquivo
-`settings.yml`. Este README será atualizado quando isso acontecer.
+Em **Admin → Customize → Themes → Matriz SEI → Configurações**, há uma opção:
+
+- **demandas_category_id**: o ID numérico da categoria do ParticiPEN em que o
+  botão "Abrir na calculadora" deve aparecer. Encontre o ID em
+  `/admin/customize/categories` (aparece na URL da categoria ou no painel de
+  edição dela). Deixe em branco para manter o componente desligado — nesse
+  caso o botão não aparece em nenhuma categoria.
+
+Mais opções (por exemplo, filtragem por grupo de usuário) virão na
+Iteração 5.
 
 ## Governança do SEI
 

@@ -437,9 +437,14 @@
   }
   button.secundario:hover { background: var(--cor-info-fundo); }
 
-  /* --- Rodapé de navegação fixo ----------------------------------------- */
+  /* --- Rodapé de navegação ------------------------------------------------
+   * Iteração 3: era `position: fixed` no protótipo standalone (fixo à
+   * viewport da página inteira). Dentro do modal (.matriz-sei-dialog tem
+   * scroll próprio) isso faria o rodapé colar no fundo da JANELA do
+   * navegador, fora do diálogo. `sticky` gruda no fundo da ÁREA COM SCROLL
+   * mais próxima (o próprio diálogo), que é o comportamento certo aqui. */
   .rodape-nav {
-    position: fixed;
+    position: sticky;
     bottom: 0;
     left: 0;
     right: 0;
@@ -466,3 +471,53 @@
     .rodape-nav { flex-wrap: wrap; gap: .5rem; }
   }
 }
+
+// --- Modal (Iteração 3) --------------------------------------------------
+// Moldura do overlay que hospeda a calculadora (ver criarOverlayComCalculadora
+// no initializer). Fica FORA de .matriz-sei-calc de propósito: o overlay e o
+// diálogo ENVOLVEM .matriz-sei-calc, não o contrário, e variáveis CSS
+// (custom properties) só herdam para baixo na árvore — as var() de
+// .matriz-sei-calc não estariam visíveis aqui. Nomes com prefixo
+// `matriz-sei-` para não colidir com classes do próprio Discourse.
+.matriz-sei-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.matriz-sei-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(20, 25, 30, .6);
+}
+.matriz-sei-dialog {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 900px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, .35);
+}
+.matriz-sei-fechar {
+  position: sticky;
+  top: 0;
+  float: right;
+  margin: .5rem .5rem 0 0;
+  width: 2.2rem;
+  height: 2.2rem;
+  border: none;
+  background: #fff;
+  color: #1c2733;
+  font-size: 1.4rem;
+  line-height: 1;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 2;
+}
+.matriz-sei-fechar:hover { background: #eef3f8; }

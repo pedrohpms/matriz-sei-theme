@@ -220,6 +220,7 @@ export default {
        * ---------------------------------------------------------------- */
 
       let tooltipAberto = null; // só um popover aberto por vez
+      let fechamentoGlobalTooltipLigado = false; // evita ligar 2x entre reaberturas do modal
 
       function mostrarTooltip(wrap) {
         if (tooltipAberto && tooltipAberto !== wrap) esconderTooltip(tooltipAberto, true);
@@ -282,8 +283,13 @@ export default {
         return wrap;
       }
 
-      // Liga ESC e clique-fora para fechar o popover aberto. Chamado uma vez.
+      // Liga ESC e clique-fora para fechar o popover aberto. Só liga uma vez:
+      // como o modal pode ser aberto e fechado várias vezes na mesma sessão de
+      // página (Iteração 3), sem esse guard cada reabertura empilharia mais um
+      // listener global duplicado.
       function ligarFechamentoGlobalTooltip() {
+        if (fechamentoGlobalTooltipLigado) return;
+        fechamentoGlobalTooltipLigado = true;
         document.addEventListener("keydown", (e) => {
           if (e.key === "Escape" && tooltipAberto) esconderTooltip(tooltipAberto, true);
         });
@@ -774,6 +780,8 @@ export default {
       // Quebra o HTML "cooked" em seções por cabeçalho: [{ titulo, conteudo }].
       // O título é o texto do H1–H6; o conteúdo é o texto dos elementos seguintes
       // até o próximo cabeçalho. Texto antes do primeiro cabeçalho é ignorado.
+      // Usado pelo loader manual do Passo 1 (URL de tópico → API pública, que
+      // devolve o post já "cooked" em HTML).
       function extrairSecoesPorCabecalho(html) {
         const doc = new DOMParser().parseFromString(html || "", "text/html");
         const ehCabecalho = (el) => /^H[1-6]$/.test(el.tagName);
@@ -791,19 +799,40 @@ export default {
         return secoes.map((s) => ({ titulo: s.titulo, conteudo: s.linhas.join("\n").trim() }));
       }
 
-      // Função pura: do JSON do tópico (Form Template do ParticiPEN) para os campos
-      // do Passo 1. Cabeçalho H3 com a pergunta literal → campo; respostas de
-      // múltipla escolha são traduzidas para o valor canônico.
-      function extrairCamposDoTopico(json) {
+      // Mesma quebra em seções, mas a partir de markdown RAW (não HTML), via
+      // regex em vez de DOMParser. ADAPTAÇÃO da Iteração 3: quando o botão do
+      // tópico abre o modal, o post já está carregado no Discourse — é mais
+      // direto pegar o `raw` do post pela Store do que reconstruir/parsear
+      // HTML "cooked". Cabeçalho ATX (`#` a `######`); o conteúdo é o texto
+      // das linhas seguintes até o próximo cabeçalho.
+      function extrairSecoesPorCabecalhoRaw(raw) {
+        const linhas = (raw || "").split(/\r?\n/);
+        const ehCabecalho = (linha) => linha.match(/^#{1,6}\s+(.*)$/);
+        const secoes = [];
+        let atual = null;
+        linhas.forEach((linha) => {
+          const m = ehCabecalho(linha);
+          if (m) {
+            atual = { titulo: m[1].replace(/\s+/g, " ").trim(), linhas: [] };
+            secoes.push(atual);
+          } else if (atual) {
+            const t = linha.trim();
+            if (t) atual.linhas.push(t);
+          }
+        });
+        return secoes.map((s) => ({ titulo: s.titulo, conteudo: s.linhas.join("\n").trim() }));
+      }
+
+      // Casa uma lista de seções {titulo, conteudo} (vinda do HTML cooked ou do
+      // markdown raw — mesmo formato) com PERGUNTAS_TEMPLATE, produzindo os
+      // campos do Passo 1. Extraído da antiga extrairCamposDoTopico() na
+      // Iteração 3 para ser reaproveitado pelos dois parsers (cooked e raw).
+      function casarCamposComSecoes(secoes, tituloFallback) {
         const r = {
           titulo: "", descricao: "", natureza: "", trilha: "", camada: "", evidencia: "",
           encontrados: [], naoReconhecidos: [], ausentes: [], temAnexos: false,
           semCabecalhos: false,
         };
-        if (!json) { r.semCabecalhos = true; return r; }
-
-        const post = json.post_stream && json.post_stream.posts && json.post_stream.posts[0];
-        const secoes = extrairSecoesPorCabecalho(post ? post.cooked : "");
         if (!secoes.length) { r.semCabecalhos = true; return r; }
 
         const tabelaDe = (tipo) => (tipo === "natureza" ? TRAD_NATUREZA
@@ -832,8 +861,8 @@ export default {
         });
 
         // Fallback do título: se o cabeçalho não trouxe, usa o título do tópico.
-        if (!r.titulo && json.title) {
-          r.titulo = String(json.title).trim();
+        if (!r.titulo && tituloFallback) {
+          r.titulo = String(tituloFallback).trim();
           if (r.titulo) {
             r.encontrados.push("titulo");
             r.ausentes = r.ausentes.filter((c) => c !== "titulo");
@@ -841,6 +870,24 @@ export default {
         }
 
         return r;
+      }
+
+      // Função pura: do JSON do tópico (API pública, Form Template do
+      // ParticiPEN) para os campos do Passo 1. Usada pelo loader manual do
+      // Passo 1 ("Carregar do ParticiPEN" por URL).
+      function extrairCamposDoTopico(json) {
+        if (!json) return casarCamposComSecoes([], "");
+        const post = json.post_stream && json.post_stream.posts && json.post_stream.posts[0];
+        const secoes = extrairSecoesPorCabecalho(post ? post.cooked : "");
+        return casarCamposComSecoes(secoes, json.title);
+      }
+
+      // Função pura: do markdown raw de um post (Store do Discourse) para os
+      // campos do Passo 1. Usada pelo botão "Abrir na calculadora" (Iteração 3),
+      // que já tem o tópico carregado e só precisa do raw do primeiro post.
+      function extrairCamposDoRawMarkdown(raw, tituloTopico) {
+        const secoes = extrairSecoesPorCabecalhoRaw(raw);
+        return casarCamposComSecoes(secoes, tituloTopico);
       }
 
       function mostrarAvisoTopico(tipo, msg) {
@@ -1618,15 +1665,15 @@ ${corpoFinal}
       }
 
       /* ---------------------------------------------------------------- *
-       * Montagem da interface (Iteração 3)
+       * Montagem da interface
        *
        * Equivale ao antigo init() do protótipo standalone, menos a carga de
-       * dados (que já rodou em carregarDadosBase()). NÃO é chamada nesta
-       * iteração: só faz sentido depois que o <template id=
-       * "matriz-sei-calc-template"> (common/head_tag.html) for clonado para
-       * dentro do DOM do modal — antes disso, os seletores abaixo (#id-
-       * natureza, #criterios, etc.) não encontram nada. Fica pronta para a
-       * Iteração 3 chamar assim que o modal existir.
+       * dados (que já rodou em carregarDadosBase()). Só pode ser chamada
+       * DEPOIS que o conteúdo do <template id="matriz-sei-calc-template">
+       * (common/head_tag.html) já foi clonado para dentro do DOM — antes
+       * disso, os seletores abaixo (#id-natureza, #criterios, etc.) não
+       * encontram nada. Quem garante essa ordem é abrirCalculadoraParaTopico(),
+       * que clona o template antes de chamar esta função.
        * ---------------------------------------------------------------- */
 
       function montarInterface() {
@@ -1649,9 +1696,180 @@ ${corpoFinal}
         mostrarPasso(0);
       }
 
-      // Única chamada ativa nesta iteração: carrega e valida os dados-base.
-      // montarInterface() fica de fora de propósito (ver comentário acima).
-      carregarDadosBase();
+      /* ---------------------------------------------------------------- *
+       * Modal (Iteração 3)
+       *
+       * ADAPTAÇÃO relevante: a forma "oficial" atual de abrir um modal no
+       * Discourse é api.container.lookup("service:modal").show(Componente),
+       * mas isso exige um componente Glimmer (.gjs) registrado — e essa API
+       * mudou entre versões do Discourse nos últimos anos (é o que o pedido
+       * chamou de "volátil"). Como não há uma instância do ParticiPEN para
+       * testar contra, optamos pelo fallback expressamente autorizado: um
+       * overlay próprio (div fixed + backdrop), sem depender de nenhum
+       * serviço interno do Ember/Discourse além do que já usamos (DOM puro).
+       * Isso é mais portátil entre versões, ao custo de não herdar a moldura
+       * visual padrão dos modais do Discourse (sem título padronizado, etc.).
+       * ---------------------------------------------------------------- */
+
+      // Remove o overlay do DOM e desliga o listener de ESC criado para ele.
+      function fecharOverlay(overlay, onKeydownEsc) {
+        document.removeEventListener("keydown", onKeydownEsc);
+        overlay.remove();
+      }
+
+      // Cria o overlay (backdrop + diálogo), clona o template da calculadora
+      // para dentro dele e o insere no <body>. Fecha com ESC, clique no
+      // backdrop ou clique no botão "×". Retorna o elemento <div class=
+      // "matriz-sei-calc"> recém-inserido (já no DOM), pronto para
+      // montarInterface() popular.
+      function criarOverlayComCalculadora() {
+        const template = document.getElementById("matriz-sei-calc-template");
+        if (!template) {
+          console.error(
+            "Matriz SEI calc: template #matriz-sei-calc-template não encontrado "
+            + "(common/head_tag.html não carregou).",
+          );
+          return null;
+        }
+
+        const overlay = document.createElement("div");
+        overlay.className = "matriz-sei-overlay";
+
+        const backdrop = document.createElement("div");
+        backdrop.className = "matriz-sei-backdrop";
+
+        const dialog = document.createElement("div");
+        dialog.className = "matriz-sei-dialog";
+        dialog.setAttribute("role", "dialog");
+        dialog.setAttribute("aria-modal", "true");
+        dialog.setAttribute("aria-label", "Calculadora da matriz de priorização do SEI");
+
+        const btnFechar = document.createElement("button");
+        btnFechar.type = "button";
+        btnFechar.className = "matriz-sei-fechar";
+        btnFechar.setAttribute("aria-label", "Fechar");
+        btnFechar.textContent = "×";
+
+        dialog.appendChild(btnFechar);
+        dialog.appendChild(template.content.cloneNode(true));
+        overlay.appendChild(backdrop);
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+
+        const onKeydownEsc = (e) => {
+          if (e.key === "Escape") fecharOverlay(overlay, onKeydownEsc);
+        };
+        document.addEventListener("keydown", onKeydownEsc);
+        backdrop.addEventListener("click", () => fecharOverlay(overlay, onKeydownEsc));
+        btnFechar.addEventListener("click", () => fecharOverlay(overlay, onKeydownEsc));
+
+        return dialog.querySelector(".matriz-sei-calc");
+      }
+
+      // Handler do botão de rodapé "Abrir na calculadora". Abre o overlay,
+      // monta a interface e tenta popular os campos a partir do raw markdown
+      // do primeiro post do tópico (Form Template do ParticiPEN).
+      async function abrirCalculadoraParaTopico(topic) {
+        if (document.querySelector(".matriz-sei-overlay")) return; // já aberto, não duplica
+
+        const raiz = criarOverlayComCalculadora();
+        if (!raiz) return;
+
+        // Se o clique veio antes de carregarDadosBase() terminar (ex.: clique
+        // muito rápido após o carregamento da página), espera a régua/tooltips
+        // — montarInterface() depende de CRITERIOS já populado.
+        await dadosBaseProntos;
+        montarInterface();
+
+        // Busca o raw markdown do primeiro post via Store (não o "cooked"
+        // HTML): o parser do Patch 4 (extrairCamposDoRawMarkdown) espera
+        // texto com cabeçalhos `### Pergunta` em markdown, não HTML renderizado.
+        const primeiroPost = topic
+          && topic.postStream
+          && topic.postStream.posts
+          && topic.postStream.posts[0];
+        const postId = primeiroPost && primeiroPost.id;
+
+        let raw = "";
+        if (postId) {
+          try {
+            const store = api.container.lookup("service:store");
+            const post = await store.find("post", postId);
+            raw = (post && post.raw) || "";
+          } catch (erro) {
+            console.error("Matriz SEI calc: falha ao buscar o raw do post via Store —", erro.message);
+          }
+        }
+
+        const campos = raw
+          ? extrairCamposDoRawMarkdown(raw, topic && topic.title)
+          : { semCabecalhos: true, encontrados: [] };
+
+        if (raw && !campos.semCabecalhos && campos.encontrados.length) {
+          popularIdentificacao(campos);
+          estado.origem.viaTopico = true;
+          estado.origem.url = topic && topic.url
+            ? `${window.location.origin}${topic.url}`
+            : "";
+          estado.origem.snapshot = snapshotIdentificacao();
+          estado.origem.camposAjustados = [];
+        }
+        atualizarScoreVisivel();
+
+        // Passo 5 do pedido: só pula direto para a Triagem (Passo 2) se os
+        // campos centrais da Identificação vieram todos preenchidos; qualquer
+        // lacuna manda para a Identificação (Passo 1) para completar à mão —
+        // a mensagem de aviso do Patch 4 (mostrarAvisoTopico) segue valendo.
+        const camposCentrais = ["titulo", "natureza", "trilha", "camada"];
+        const tudoPreenchido = camposCentrais.every((c) => estado.identificacao[c]);
+
+        if (tudoPreenchido) {
+          mostrarAvisoTopico("ok", "Campos carregados automaticamente deste tópico.");
+          mostrarPasso(1); // Triagem
+        } else if (campos.semCabecalhos) {
+          mostrarAvisoTopico("erro",
+            "Este tópico não está no formato esperado pelo Form Template do "
+            + "ParticiPEN. Preencha os campos manualmente.");
+          mostrarPasso(0); // Identificação
+        } else {
+          mostrarAvisoTopico("neutro",
+            "Alguns campos não foram reconhecidos automaticamente. Complete "
+            + "manualmente antes de avançar.");
+          mostrarPasso(0); // Identificação
+        }
+      }
+
+      /* ---------------------------------------------------------------- *
+       * Botão de rodapé do tópico
+       *
+       * Só aparece em tópicos da categoria configurada em
+       * settings.demandas_category_id (Passo 3). Vazio = desligado em
+       * qualquer categoria. registerTopicFooterButton já restringe a
+       * usuários logados por padrão; filtragem por grupo fica para a
+       * Iteração 5.
+       * ---------------------------------------------------------------- */
+
+      api.registerTopicFooterButton({
+        id: "matriz-sei-open",
+        icon: "calculator",
+        label: "topic.matriz_sei.open_button",
+        title: "topic.matriz_sei.open_button_title",
+        action() {
+          abrirCalculadoraParaTopico(this.topic);
+        },
+        displayed() {
+          const bruto = (settings.demandas_category_id || "").toString().trim();
+          if (!bruto) return false; // modo desligado
+          const catId = parseInt(bruto, 10);
+          if (Number.isNaN(catId)) return false;
+          return this.topic.category_id === catId;
+        },
+      });
+
+      // Carrega e valida os dados-base assim que o initializer roda; guardado
+      // em dadosBaseProntos para abrirCalculadoraParaTopico() poder aguardar
+      // caso o clique no botão aconteça antes da carga terminar.
+      const dadosBaseProntos = carregarDadosBase();
     });
   },
 };
