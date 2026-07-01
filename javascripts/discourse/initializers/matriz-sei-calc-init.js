@@ -27,20 +27,6 @@ export default {
       console.info("Matriz SEI calc initializer carregado");
 
       /* ---------------------------------------------------------------- *
-       * Configuração (ajustar no deploy)
-       *
-       * `discourseBaseUrl` é a base do ParticiPEN. No protótipo standalone
-       * era usada como placeholder e para montar a URL da API pública
-       * ({base}/t/{id}.json) sujeita a CORS. Embarcada como theme component,
-       * o fetch roda na própria origem do Discourse — não há mais CORS a
-       * contornar — mas o valor segue útil como sugestão do campo de URL.
-       * ---------------------------------------------------------------- */
-
-      const CONFIG = {
-        discourseBaseUrl: "https://participen.processoeletronico.gov.br",
-      };
-
-      /* ---------------------------------------------------------------- *
        * Dados de domínio (fonte única da verdade)
        * ---------------------------------------------------------------- */
 
@@ -120,11 +106,13 @@ export default {
           dependencias: "",
           evidencia: "",
         },
-        // Procedência dos dados do Passo 1 (carga de tópico vs. manual).
+        // Procedência dos dados do Passo 1 (extração automática do tópico vs.
+        // manual). Não há mais cache de JSON bruto (era da chamada fetch à API
+        // pública, removida nesta iteração): o raw do post vem direto da Store
+        // a cada abertura do modal, não precisa ser reaproveitado.
         origem: {
-          viaTopico: false,    // dados vieram de um tópico do ParticiPEN
+          viaTopico: false,    // dados vieram do primeiro post do tópico
           url: "",             // URL do tópico de origem
-          jsonBruto: null,     // cache do JSON da API (sessão; não persistido)
           snapshot: {},        // valores logo após a carga, p/ detectar ajustes
           camposAjustados: [], // chaves de campos editados manualmente pós-carga
         },
@@ -696,10 +684,13 @@ export default {
       /* ---------------------------------------------------------------- *
        * Integração com o ParticiPEN (Discourse)
        *
-       * O parser (parseDiscourseUrl, extrairCamposDoTopico) é função pura,
-       * inalterado. A busca do tópico continua via fetch — agora roda na
-       * mesma origem do Discourse, então já não depende de CORS liberado
-       * como no protótipo standalone.
+       * ADAPTAÇÃO desta iteração: o protótipo standalone (e as duas
+       * primeiras iterações do theme component) liam o tópico via fetch à
+       * API pública ({base}/t/{id}.json), sujeita a CORS e a um campo de URL
+       * preenchido à mão. Isso saiu por completo — o parser
+       * (parseFormTemplateBody) agora só recebe o `raw` markdown do primeiro
+       * post, já obtido pela Store do Discourse em abrirCalculadoraParaTopico().
+       * Nenhuma chamada de rede acontece aqui.
        * ---------------------------------------------------------------- */
 
       // Campos do Passo 1 que podem vir do tópico (para snapshot/ajustes).
@@ -749,20 +740,6 @@ export default {
         "Isso deveria ser parte do SEI": "core-sei",
       };
 
-      // Extrai {baseUrl, slug, topicId} de uma URL de tópico Discourse.
-      function parseDiscourseUrl(url) {
-        let u;
-        try {
-          u = new URL((url || "").trim());
-        } catch (e) {
-          return null;
-        }
-        // /t/{slug}/{id} ou /t/{id}
-        const m = u.pathname.match(/\/t\/(?:([^/]+)\/)?(\d+)/);
-        if (!m) return null;
-        return { baseUrl: u.origin, slug: m[1] || "", topicId: m[2] };
-      }
-
       // Normaliza para comparação tolerante: sem acento, minúsculas, espaços colapsados.
       function normalizaTexto(s) {
         return semAcento(String(s || "")).toLowerCase().replace(/\s+/g, " ").trim();
@@ -777,34 +754,11 @@ export default {
         return "";
       }
 
-      // Quebra o HTML "cooked" em seções por cabeçalho: [{ titulo, conteudo }].
-      // O título é o texto do H1–H6; o conteúdo é o texto dos elementos seguintes
-      // até o próximo cabeçalho. Texto antes do primeiro cabeçalho é ignorado.
-      // Usado pelo loader manual do Passo 1 (URL de tópico → API pública, que
-      // devolve o post já "cooked" em HTML).
-      function extrairSecoesPorCabecalho(html) {
-        const doc = new DOMParser().parseFromString(html || "", "text/html");
-        const ehCabecalho = (el) => /^H[1-6]$/.test(el.tagName);
-        const secoes = [];
-        let atual = null;
-        Array.from(doc.body.children).forEach((el) => {
-          if (ehCabecalho(el)) {
-            atual = { titulo: el.textContent.replace(/\s+/g, " ").trim(), linhas: [] };
-            secoes.push(atual);
-          } else if (atual) {
-            const t = el.textContent.trim();
-            if (t) atual.linhas.push(t);
-          }
-        });
-        return secoes.map((s) => ({ titulo: s.titulo, conteudo: s.linhas.join("\n").trim() }));
-      }
-
-      // Mesma quebra em seções, mas a partir de markdown RAW (não HTML), via
-      // regex em vez de DOMParser. ADAPTAÇÃO da Iteração 3: quando o botão do
-      // tópico abre o modal, o post já está carregado no Discourse — é mais
-      // direto pegar o `raw` do post pela Store do que reconstruir/parsear
-      // HTML "cooked". Cabeçalho ATX (`#` a `######`); o conteúdo é o texto
-      // das linhas seguintes até o próximo cabeçalho.
+      // Quebra o markdown RAW de um post em seções por cabeçalho ATX (`#` a
+      // `######`): [{ titulo, conteudo }]. O conteúdo é o texto das linhas
+      // seguintes até o próximo cabeçalho. Único parser de seções desta
+      // iteração — não há mais variante para HTML "cooked" (essa dependia do
+      // fetch à API pública, removido).
       function extrairSecoesPorCabecalhoRaw(raw) {
         const linhas = (raw || "").split(/\r?\n/);
         const ehCabecalho = (linha) => linha.match(/^#{1,6}\s+(.*)$/);
@@ -823,10 +777,9 @@ export default {
         return secoes.map((s) => ({ titulo: s.titulo, conteudo: s.linhas.join("\n").trim() }));
       }
 
-      // Casa uma lista de seções {titulo, conteudo} (vinda do HTML cooked ou do
-      // markdown raw — mesmo formato) com PERGUNTAS_TEMPLATE, produzindo os
-      // campos do Passo 1. Extraído da antiga extrairCamposDoTopico() na
-      // Iteração 3 para ser reaproveitado pelos dois parsers (cooked e raw).
+      // Casa uma lista de seções {titulo, conteudo} (vinda de
+      // extrairSecoesPorCabecalhoRaw) com PERGUNTAS_TEMPLATE, produzindo os
+      // campos do Passo 1.
       function casarCamposComSecoes(secoes, tituloFallback) {
         const r = {
           titulo: "", descricao: "", natureza: "", trilha: "", camada: "", evidencia: "",
@@ -872,20 +825,11 @@ export default {
         return r;
       }
 
-      // Função pura: do JSON do tópico (API pública, Form Template do
-      // ParticiPEN) para os campos do Passo 1. Usada pelo loader manual do
-      // Passo 1 ("Carregar do ParticiPEN" por URL).
-      function extrairCamposDoTopico(json) {
-        if (!json) return casarCamposComSecoes([], "");
-        const post = json.post_stream && json.post_stream.posts && json.post_stream.posts[0];
-        const secoes = extrairSecoesPorCabecalho(post ? post.cooked : "");
-        return casarCamposComSecoes(secoes, json.title);
-      }
-
-      // Função pura: do markdown raw de um post (Store do Discourse) para os
-      // campos do Passo 1. Usada pelo botão "Abrir na calculadora" (Iteração 3),
-      // que já tem o tópico carregado e só precisa do raw do primeiro post.
-      function extrairCamposDoRawMarkdown(raw, tituloTopico) {
+      // Função pura: do markdown raw do primeiro post do tópico (obtido pela
+      // Store do Discourse em abrirCalculadoraParaTopico) para os campos do
+      // Passo 1 — é o parser do Form Template do ParticiPEN (Patch 4),
+      // reescrito nesta iteração para não depender mais de fetch/JSON.
+      function parseFormTemplateBody(raw, tituloTopico) {
         const secoes = extrairSecoesPorCabecalhoRaw(raw);
         return casarCamposComSecoes(secoes, tituloTopico);
       }
@@ -937,27 +881,26 @@ export default {
         }
       }
 
-      // Aplica um JSON de tópico (recém-carregado ou do cache) ao Passo 1.
-      function aplicarTopico(json, url) {
-        estado.origem.jsonBruto = json; // cache de sessão (não persistido)
-        estado.origem.url = url;
-
-        const campos = extrairCamposDoTopico(json);
-
-        // Body fora do formato do Form Template (sem cabeçalhos reconhecíveis).
+      // Aplica os campos extraídos do raw markdown do post (parseFormTemplateBody)
+      // ao Passo 1 e gera o aviso correspondente — sucesso liso, sucesso
+      // parcial (campos ausentes/não reconhecidos, com a mensagem de
+      // fallback graceful do Patch 4) ou falha total (sem cabeçalhos
+      // reconhecíveis). Chamada uma vez por abertura do modal, em
+      // abrirCalculadoraParaTopico(); não há mais recarregar/re-extrair —
+      // reabrir o modal já refaz a extração do zero.
+      function aplicarCamposDoTopico(campos, url) {
         if (campos.semCabecalhos) {
           mostrarAvisoTopico("erro",
             "Este tópico não está no formato esperado pelo Form Template do "
             + "ParticiPEN. Preencha os campos manualmente.");
-          $("#btn-reextrair").hidden = false;
           return;
         }
 
         popularIdentificacao(campos);
         estado.origem.viaTopico = true;
+        estado.origem.url = url;
         estado.origem.snapshot = snapshotIdentificacao();
         estado.origem.camposAjustados = [];
-        $("#btn-reextrair").hidden = false;
         atualizarScoreVisivel();
 
         // Avisos de falha graceful (campos ausentes / respostas não reconhecidas).
@@ -973,42 +916,12 @@ export default {
         if (campos.temAnexos) partes.push("Há anexos — ver no tópico original.");
 
         if (!partes.length) {
-          mostrarAvisoTopico("ok", "Campos carregados do tópico (Form Template do ParticiPEN).");
+          mostrarAvisoTopico("ok", "Campos carregados automaticamente deste tópico (Form Template do ParticiPEN).");
         } else {
           mostrarAvisoTopico(campos.encontrados.length ? "neutro" : "erro",
             (campos.encontrados.length
               ? "Campos carregados do tópico. "
               : "Pouca coisa pôde ser extraída. ") + partes.join(" "));
-        }
-      }
-
-      // Handler do botão "Carregar": valida URL, busca o JSON e aplica.
-      async function carregarDoTopico() {
-        const url = $("#id-topico-url").value.trim();
-        const parsed = parseDiscourseUrl(url);
-        if (!parsed) {
-          mostrarAvisoTopico("erro",
-            "URL de tópico inválida. Use o formato {base}/t/{slug}/{id}.");
-          return;
-        }
-        const apiUrl = `${parsed.baseUrl}/t/${parsed.topicId}.json`;
-        mostrarAvisoTopico("neutro", "Carregando do ParticiPEN…");
-        try {
-          const resp = await fetch(apiUrl, { headers: { Accept: "application/json" } });
-          if (!resp.ok) throw new Error("HTTP " + resp.status);
-          const json = await resp.json();
-          aplicarTopico(json, url);
-        } catch (e) {
-          mostrarAvisoTopico("erro",
-            "Não foi possível extrair os campos do tópico — preencha manualmente abaixo. ("
-            + e.message + ")");
-        }
-      }
-
-      // Re-extrai a partir do JSON em cache (sem nova chamada de rede).
-      function reextrair() {
-        if (estado.origem.jsonBruto) {
-          aplicarTopico(estado.origem.jsonBruto, estado.origem.url);
         }
       }
 
@@ -1109,14 +1022,12 @@ export default {
         );
         estado.origem.viaTopico = viaTopico;
         estado.origem.url = m.urlTopico || "";
-        estado.origem.jsonBruto = null;
         estado.origem.camposAjustados = viaTopico
           ? (m.camposAjustadosManualmente || []).map((r) => chavePorRotulo[r]).filter(Boolean)
           : [];
         estado.origem.snapshot = snapshotIdentificacao();
 
         sincronizarFormularioComEstado();
-        $("#btn-reextrair").hidden = true; // sem cache de tópico nesta carga
         mostrarPasso(0);
       }
 
@@ -1466,13 +1377,6 @@ ${corpoFinal}
        * ---------------------------------------------------------------- */
 
       function ligarEventos() {
-        // Passo 1 — carga a partir de tópico do ParticiPEN
-        $("#btn-carregar-topico").addEventListener("click", carregarDoTopico);
-        $("#btn-reextrair").addEventListener("click", reextrair);
-        // Enter no campo de URL dispara o carregamento (acessível por teclado).
-        $("#id-topico-url").addEventListener("keydown", (e) => {
-          if (e.key === "Enter") { e.preventDefault(); carregarDoTopico(); }
-        });
         // Passo 1 — carregar exemplo / memória salva (JSON)
         $("#id-exemplo-file").addEventListener("change", (e) => {
           if (e.target.files && e.target.files[0]) carregarExemploArquivo(e.target.files[0]);
@@ -1689,9 +1593,6 @@ ${corpoFinal}
         ligarEventos();
         ligarFechamentoGlobalTooltip();
 
-        // Placeholder do campo de URL reflete a base configurada do ParticiPEN.
-        $("#id-topico-url").placeholder = `${CONFIG.discourseBaseUrl}/t/minha-demanda/123`;
-
         $("#progresso-total").textContent = TOTAL_PASSOS;
         mostrarPasso(0);
       }
@@ -1767,8 +1668,10 @@ ${corpoFinal}
       }
 
       // Handler do botão de rodapé "Abrir na calculadora". Abre o overlay,
-      // monta a interface e tenta popular os campos a partir do raw markdown
-      // do primeiro post do tópico (Form Template do ParticiPEN).
+      // monta a interface e popula os campos a partir do raw markdown do
+      // primeiro post do tópico — via Store do Discourse, sem nenhuma
+      // chamada de rede própria da calculadora (fetch à API pública foi
+      // removido nesta iteração).
       async function abrirCalculadoraParaTopico(topic) {
         if (document.querySelector(".matriz-sei-overlay")) return; // já aberto, não duplica
 
@@ -1781,62 +1684,40 @@ ${corpoFinal}
         await dadosBaseProntos;
         montarInterface();
 
-        // Busca o raw markdown do primeiro post via Store (não o "cooked"
-        // HTML): o parser do Patch 4 (extrairCamposDoRawMarkdown) espera
-        // texto com cabeçalhos `### Pergunta` em markdown, não HTML renderizado.
-        const primeiroPost = topic
+        // store.find("post", id) devolve o post via Store interna do
+        // Discourse (mesmo objeto que o resto do app usa) — não é uma
+        // chamada HTTP arbitrária da calculadora, é a mesma via de acesso a
+        // dados que qualquer componente Ember do fórum usa.
+        const firstPostId = topic
           && topic.postStream
           && topic.postStream.posts
-          && topic.postStream.posts[0];
-        const postId = primeiroPost && primeiroPost.id;
+          && topic.postStream.posts[0]
+          && topic.postStream.posts[0].id;
 
         let raw = "";
-        if (postId) {
+        if (firstPostId) {
           try {
             const store = api.container.lookup("service:store");
-            const post = await store.find("post", postId);
+            const post = await store.find("post", firstPostId);
             raw = (post && post.raw) || "";
           } catch (erro) {
-            console.error("Matriz SEI calc: falha ao buscar o raw do post via Store —", erro.message);
+            console.error("Matriz SEI calc: falha ao buscar o post via Store —", erro.message);
           }
         }
 
         const campos = raw
-          ? extrairCamposDoRawMarkdown(raw, topic && topic.title)
-          : { semCabecalhos: true, encontrados: [] };
+          ? parseFormTemplateBody(raw, topic && topic.title)
+          : { semCabecalhos: true, ausentes: [], naoReconhecidos: [], encontrados: [], temAnexos: false };
+        const urlTopico = topic && topic.url ? `${window.location.origin}${topic.url}` : "";
+        aplicarCamposDoTopico(campos, urlTopico);
 
-        if (raw && !campos.semCabecalhos && campos.encontrados.length) {
-          popularIdentificacao(campos);
-          estado.origem.viaTopico = true;
-          estado.origem.url = topic && topic.url
-            ? `${window.location.origin}${topic.url}`
-            : "";
-          estado.origem.snapshot = snapshotIdentificacao();
-          estado.origem.camposAjustados = [];
-        }
-        atualizarScoreVisivel();
-
-        // Passo 5 do pedido: só pula direto para a Triagem (Passo 2) se os
-        // campos centrais da Identificação vieram todos preenchidos; qualquer
-        // lacuna manda para a Identificação (Passo 1) para completar à mão —
-        // a mensagem de aviso do Patch 4 (mostrarAvisoTopico) segue valendo.
+        // Só pula direto para a Triagem (Passo 2) se os campos centrais da
+        // Identificação vieram todos preenchidos; qualquer lacuna manda para
+        // a Identificação (Passo 1) para completar à mão — o fallback manual
+        // do Patch 4 continua disponível ali.
         const camposCentrais = ["titulo", "natureza", "trilha", "camada"];
         const tudoPreenchido = camposCentrais.every((c) => estado.identificacao[c]);
-
-        if (tudoPreenchido) {
-          mostrarAvisoTopico("ok", "Campos carregados automaticamente deste tópico.");
-          mostrarPasso(1); // Triagem
-        } else if (campos.semCabecalhos) {
-          mostrarAvisoTopico("erro",
-            "Este tópico não está no formato esperado pelo Form Template do "
-            + "ParticiPEN. Preencha os campos manualmente.");
-          mostrarPasso(0); // Identificação
-        } else {
-          mostrarAvisoTopico("neutro",
-            "Alguns campos não foram reconhecidos automaticamente. Complete "
-            + "manualmente antes de avançar.");
-          mostrarPasso(0); // Identificação
-        }
+        mostrarPasso(tudoPreenchido ? 1 : 0);
       }
 
       /* ---------------------------------------------------------------- *

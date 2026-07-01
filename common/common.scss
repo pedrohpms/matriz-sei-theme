@@ -125,7 +125,7 @@
   }
   .ajuda em { color: var(--cor-alerta); font-style: italic; }
 
-  /* --- Carregamento a partir de tópico do ParticiPEN (Passo 1) ---------- */
+  /* --- Carregar exemplo ou memória salva, Passo 1 (JSON local) ----------- */
   .topico-loader {
     border: 1px solid var(--cor-borda);
     border-radius: var(--raio);
@@ -137,19 +137,6 @@
     display: block;
     font-weight: 600;
     margin-bottom: .4rem;
-  }
-  .topico-linha {
-    display: flex;
-    flex-wrap: wrap;
-    gap: .5rem;
-  }
-  .topico-linha input {
-    flex: 1 1 16rem;
-    min-width: 0;
-    padding: .55rem .6rem;
-    border: 1px solid var(--cor-borda);
-    border-radius: var(--raio);
-    font: inherit;
   }
   .topico-loader .ajuda { margin-top: .6rem; }
   .topico-loader .aviso { margin-top: .6rem; }

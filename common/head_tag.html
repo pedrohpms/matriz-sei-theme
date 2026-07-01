@@ -1,10 +1,10 @@
 <!--
   Skeleton HTML da calculadora, migrado do <body> do index.html do protótipo
   standalone (pedrohpms/matriz-sei). Fica dentro de um <template>, portanto
-  NÃO é renderizado no DOM ainda — é só instanciado (clonado) quando o botão
-  que abre a calculadora for implementado, na Iteração 3. Tudo está escopado
-  sob .matriz-sei-calc (ver common/common.scss) para não vazar estilo/IDs
-  para o resto do ParticiPEN quando o template for clonado.
+  não é renderizado no DOM sozinho — é clonado por criarOverlayComCalculadora()
+  no initializer, ao clicar no botão de rodapé "Abrir na calculadora". Tudo
+  está escopado sob .matriz-sei-calc (ver common/common.scss) para não vazar
+  estilo/IDs para o resto do ParticiPEN quando o template for clonado.
 -->
 <template id="matriz-sei-calc-template">
   <div class="matriz-sei-calc">
@@ -30,21 +30,13 @@
       <section class="passo" data-passo="0">
         <h2>1. Identificação da demanda</h2>
 
-        <!-- Carregamento a partir de um tópico do ParticiPEN (Discourse) -->
-        <div class="topico-loader">
-          <label for="id-topico-url">Carregar do ParticiPEN (URL do tópico)</label>
-          <div class="topico-linha">
-            <input type="url" id="id-topico-url"
-              placeholder="https://…/t/minha-demanda/123" />
-            <button type="button" id="btn-carregar-topico">Carregar</button>
-            <button type="button" id="btn-reextrair" class="secundario" hidden>Re-extrair</button>
-          </div>
-          <p id="topico-aviso" class="aviso" hidden role="status" aria-live="polite"></p>
-          <p class="ajuda">
-            Cole a URL de um tópico do ParticiPEN para puxar os campos
-            automaticamente. Sem URL, preencha manualmente abaixo.
-          </p>
-        </div>
+        <!-- Aviso do resultado da extração automática: o initializer já leu
+             o raw markdown do primeiro post via Store do Discourse ao abrir
+             o modal (abrirCalculadoraParaTopico) e tentou popular os campos
+             abaixo. Sem input manual de URL — não há mais chamada de rede
+             própria da calculadora; o parser só roda sobre o post já
+             carregado no fórum. -->
+        <p id="topico-aviso" class="aviso" hidden role="status" aria-live="polite"></p>
 
         <!-- Carregar um exemplo pronto ou uma memória de cálculo exportada -->
         <div class="topico-loader">

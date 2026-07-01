@@ -23,14 +23,22 @@ poucos cliques feita pelo painel administrativo do Discourse.
 
 ## O que ele faz (nesta versão)
 
-O componente está na Iteração 3: nos tópicos da categoria configurada (ver
+O componente está na Iteração 4: nos tópicos da categoria configurada (ver
 "Configurações" abaixo), aparece um botão **"Abrir na calculadora"** no
-rodapé do tópico. Clicar nele abre a calculadora num modal, já tentando
-preencher os campos a partir do primeiro post do tópico (se ele seguir o
-Form Template do ParticiPEN). O código da calculadora vem do protótipo
-standalone [pedrohpms/matriz-sei](https://github.com/pedrohpms/matriz-sei).
+rodapé do tópico. Clicar nele abre a calculadora num modal e já preenche os
+campos automaticamente a partir do primeiro post do tópico (se ele seguir o
+Form Template do ParticiPEN) — sem nenhuma chamada de rede própria da
+calculadora: o post é lido pela mesma Store interna que o resto do Discourse
+usa. Se o post não estiver nesse formato, os campos ficam em branco para
+preenchimento manual. O código da calculadora vem do protótipo standalone
+[pedrohpms/matriz-sei](https://github.com/pedrohpms/matriz-sei).
 
 Filtragem por grupo de usuário (além da categoria) fica para a Iteração 5.
+
+Depois de pontuar a demanda, o avaliador copia a memória de cálculo em
+Markdown (botão "Copiar markdown") e cola manualmente como reply no tópico.
+Publicar essa memória automaticamente como reply é uma evolução prevista,
+ainda não implementada nesta versão.
 
 ## Estrutura de assets
 
@@ -39,7 +47,12 @@ Filtragem por grupo de usuário (além da categoria) fica para a Iteração 5.
   quando o fórum inicializa). Carrega `regua.json`/`tooltips.json`, registra
   o botão de rodapé do tópico (`api.registerTopicFooterButton`) e contém a
   lógica que abre o modal, popula os campos a partir do post e monta a
-  interface dentro dele.
+  interface dentro dele. O parser do Form Template (`parseFormTemplateBody`)
+  lê o `raw` markdown do primeiro post via Store do Discourse
+  (`store.find("post", id)`) — a calculadora não faz nenhuma chamada HTTP
+  própria (confirmável pela aba Network do DevTools ao abrir o modal); as
+  únicas requisições de rede são as do próprio Discourse e o carregamento dos
+  assets do tema (`regua.json`/`tooltips.json`), que já existiam antes.
 - `javascripts/discourse/regua.json` e `javascripts/discourse/tooltips.json`
   — os dados da régua de critérios e dos textos de ajuda contextual.
   Declarados em `about.json` sob `"assets"`, o que faz o Discourse
@@ -81,6 +94,15 @@ Em **Admin → Customize → Themes → Matriz SEI → Configurações**, há um
 
 Mais opções (por exemplo, filtragem por grupo de usuário) virão na
 Iteração 5.
+
+## Evoluções futuras
+
+- **Publicação automática da memória de cálculo como reply no tópico.**
+  Hoje o avaliador copia o Markdown gerado (botão "Copiar markdown") e cola
+  manualmente como resposta no tópico. Publicar isso automaticamente (via
+  API de posts do Discourse) é uma evolução prevista, ainda não implementada.
+- Filtragem do botão de rodapé por grupo de usuário, além da categoria
+  (Iteração 5).
 
 ## Governança do SEI
 
