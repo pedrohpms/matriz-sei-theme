@@ -1,3 +1,6 @@
 demandas_category_id:
   default: ""
   description: "ID numérico da categoria em que a calculadora deve aparecer. Encontre o ID em /admin/customize/categories."
+grupo_autorizado:
+  default: "gpsei"
+  description: "Nome do grupo Discourse cujos membros podem usar a calculadora. Deixe em branco para permitir a todos os usuários logados."

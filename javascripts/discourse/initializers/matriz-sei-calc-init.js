@@ -1724,11 +1724,25 @@ ${corpoFinal}
        * Botão de rodapé do tópico
        *
        * Só aparece em tópicos da categoria configurada em
-       * settings.demandas_category_id (Passo 3). Vazio = desligado em
-       * qualquer categoria. registerTopicFooterButton já restringe a
-       * usuários logados por padrão; filtragem por grupo fica para a
-       * Iteração 5.
+       * settings.demandas_category_id, E (Iteração 5) só para membros do
+       * grupo configurado em settings.grupo_autorizado — se esse setting
+       * estiver vazio, qualquer usuário logado vê o botão (registerTopicFooter
+       * Button já restringe a usuários logados por padrão).
        * ---------------------------------------------------------------- */
+
+      // Confere se o usuário atual pertence ao grupo configurado em
+      // settings.grupo_autorizado. Setting vazio = sem restrição de grupo
+      // (true). currentUser ausente ou sem grupos = nunca autorizado quando
+      // a restrição está ativa.
+      function usuarioNoGrupoAutorizado() {
+        const nomeGrupo = (settings.grupo_autorizado || "").toString().trim();
+        if (!nomeGrupo) return true; // sem restrição de grupo
+
+        const currentUser = api.getCurrentUser();
+        if (!currentUser || !currentUser.groups) return false;
+
+        return currentUser.groups.some((g) => g && g.name === nomeGrupo);
+      }
 
       api.registerTopicFooterButton({
         id: "matriz-sei-open",
@@ -1743,7 +1757,8 @@ ${corpoFinal}
           if (!bruto) return false; // modo desligado
           const catId = parseInt(bruto, 10);
           if (Number.isNaN(catId)) return false;
-          return this.topic.category_id === catId;
+          if (this.topic.category_id !== catId) return false;
+          return usuarioNoGrupoAutorizado();
         },
       });
 

@@ -23,17 +23,16 @@ poucos cliques feita pelo painel administrativo do Discourse.
 
 ## O que ele faz (nesta versão)
 
-O componente está na Iteração 4: nos tópicos da categoria configurada (ver
+O componente está na Iteração 5: nos tópicos da categoria configurada (ver
 "Configurações" abaixo), aparece um botão **"Abrir na calculadora"** no
-rodapé do tópico. Clicar nele abre a calculadora num modal e já preenche os
-campos automaticamente a partir do primeiro post do tópico (se ele seguir o
-Form Template do ParticiPEN) — sem nenhuma chamada de rede própria da
-calculadora: o post é lido pela mesma Store interna que o resto do Discourse
-usa. Se o post não estiver nesse formato, os campos ficam em branco para
-preenchimento manual. O código da calculadora vem do protótipo standalone
-[pedrohpms/matriz-sei](https://github.com/pedrohpms/matriz-sei).
-
-Filtragem por grupo de usuário (além da categoria) fica para a Iteração 5.
+rodapé do tópico — mas só para quem está logado **e** é membro do grupo
+autorizado (por padrão, `gpsei`). Clicar nele abre a calculadora num modal e
+já preenche os campos automaticamente a partir do primeiro post do tópico
+(se ele seguir o Form Template do ParticiPEN) — sem nenhuma chamada de rede
+própria da calculadora: o post é lido pela mesma Store interna que o resto
+do Discourse usa. Se o post não estiver nesse formato, os campos ficam em
+branco para preenchimento manual. O código da calculadora vem do protótipo
+standalone [pedrohpms/matriz-sei](https://github.com/pedrohpms/matriz-sei).
 
 Depois de pontuar a demanda, o avaliador copia a memória de cálculo em
 Markdown (botão "Copiar markdown") e cola manualmente como reply no tópico.
@@ -65,8 +64,8 @@ ainda não implementada nesta versão.
   `<template id="matriz-sei-calc-template">`. Ao clicar no botão de rodapé,
   o initializer clona esse template para dentro de um modal próprio (overlay
   com fundo escurecido, fecha com ESC, clique fora ou no ×).
-- `settings.yml` — a configuração `demandas_category_id` (ver "Configurações"
-  abaixo).
+- `settings.yml` — as configurações `demandas_category_id` e
+  `grupo_autorizado` (ver "Configurações" abaixo).
 - `locales/pt_BR.yml` — os textos do botão de rodapé.
 
 ## Como instalar
@@ -84,16 +83,28 @@ qualquer theme já em uso no ParticiPEN, sem substituí-lo.
 
 ## Configurações (settings)
 
-Em **Admin → Customize → Themes → Matriz SEI → Configurações**, há uma opção:
+Em **Admin → Customize → Themes → Matriz SEI → Configurações**, há duas opções:
 
 - **demandas_category_id**: o ID numérico da categoria do ParticiPEN em que o
   botão "Abrir na calculadora" deve aparecer. Encontre o ID em
   `/admin/customize/categories` (aparece na URL da categoria ou no painel de
   edição dela). Deixe em branco para manter o componente desligado — nesse
   caso o botão não aparece em nenhuma categoria.
+- **grupo_autorizado**: o nome do grupo do Discourse cujos membros podem ver
+  e usar o botão "Abrir na calculadora". Vem pré-configurado como `gpsei`.
 
-Mais opções (por exemplo, filtragem por grupo de usuário) virão na
-Iteração 5.
+  Para usar a restrição padrão, crie um grupo chamado **gpsei** em
+  **Admin → Users → Groups** e adicione como membros os avaliadores da
+  GPSEI. O grupo **não precisa ser público** — pode ficar com visibilidade
+  restrita a admins/membros, isso não afeta a checagem do botão (ela só olha
+  se o usuário pertence ao grupo, não a visibilidade da página do grupo).
+
+  Se preferir abrir o uso para qualquer usuário logado do ParticiPEN
+  (sem exigir grupo), basta **esvaziar** o campo `grupo_autorizado` nas
+  configurações do componente.
+
+  As duas condições — categoria certa e grupo certo — precisam valer ao
+  mesmo tempo para o botão aparecer.
 
 ## Evoluções futuras
 
@@ -101,8 +112,6 @@ Iteração 5.
   Hoje o avaliador copia o Markdown gerado (botão "Copiar markdown") e cola
   manualmente como resposta no tópico. Publicar isso automaticamente (via
   API de posts do Discourse) é uma evolução prevista, ainda não implementada.
-- Filtragem do botão de rodapé por grupo de usuário, além da categoria
-  (Iteração 5).
 
 ## Governança do SEI
 
