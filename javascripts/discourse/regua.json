@@ -1,0 +1,86 @@
+{
+  "versao": "1.2.0",
+  "atualizadoEm": "2026-06-23",
+  "criterios": [
+    {
+      "chave": "impacto",
+      "rotulo": "Impacto institucional",
+      "invertido": false,
+      "descricao": {
+        "intro": "Este critério avalia o aspecto discricionário da demanda - se há conveniência e oportunidade de atendimento.",
+        "aspectosIntro": "Avalie a demanda quanto a qualquer um destes aspectos:",
+        "aspectos": [
+          "alinhamento com prioridade de governo (explícita, declarada);",
+          "recomendação de órgão de controle (não vinculante);",
+          "compromisso firmado (ACTs, MoUs, pactos, convênios);",
+          "visibilidade externa do SEI (imprensa, reputação);",
+          "diretriz setorial de ministério ou autarquia de cúpula (mesmo vindas de fora da SEGES/MGI)."
+        ],
+        "regra": "Se mais de um aspecto estiver presente, considere a dimensão mais marcante - não some várias; atribua a nota pela que pesar mais forte. Em seguida, escolha o nível na escala abaixo.",
+        "observacoes": [
+          "Observação 1: aqui não entra exigência legal - Obrigação legal é ato vinculado, tratada na triagem. Se for o caso, volte à etapa de triagem e assinale a opção correspondente.",
+          "Observação 2: determinação de órgão de controle também é ato vinculado e não entra aqui. Se a recomendação já se tornou determinação, volte à triagem e assinale."
+        ]
+      },
+      "descritores": [
+        "Nenhuma das dimensões aparece. Demanda de conveniência local.",
+        "Uma dimensão aparece de forma marginal: diretriz informal local, tema lateral em reunião com controle sem recomendação formal, ou visibilidade restrita a um grupo pequeno.",
+        "Uma dimensão aparece com peso médio: normativa setorial que afeta um grupo de órgãos; diretriz formal da SEGES/MGI; recomendação não-vinculante em relatório de auditoria; visibilidade entre usuários do SEI sem repercussão externa.",
+        "Uma dimensão aparece forte: programa ou compromisso formal de governo transversal; diretriz setorial muito ampla e cobrada; recomendação reiterada de órgão de controle; citação na imprensa ou exposição a usuário externo de forma sensível.",
+        "Dimensão crítica dentro do discricionário: programa prioritário de governo com prazo e cobrança; recomendação reiterada de controle sob forte pressão (sem ainda configurar determinação); compromisso público com sociedade civil cobrado em conselho; risco reputacional concreto."
+      ]
+    },
+    {
+      "chave": "orgaos",
+      "rotulo": "Quantidade de órgãos afetados",
+      "invertido": false,
+      "descricao": "Quantos entes da esfera federal se beneficiam. Em ambiguidade entre número e segmento, prevalece o segmento.",
+      "descritores": [
+        "1 órgão, em uso estritamente local, sem reuso possível.",
+        "2 a 5 órgãos pontuais.",
+        "Um grupo temático ou subconjunto de um segmento (6 a 30 órgãos - por exemplo, agências reguladoras de infraestrutura).",
+        "Um segmento inteiro (toda a Direta, toda a Indireta, todas as Agências, ou todas as Estatais), ou múltiplos grupos (31 a 150 órgãos).",
+        "Múltiplos segmentos, ou transversal à esfera federal (>150 órgãos)."
+      ]
+    },
+    {
+      "chave": "ganho",
+      "rotulo": "Ganho operacional",
+      "invertido": false,
+      "descricao": "Ganho típico para um órgão que adota a solução, desacoplado do solicitante. Quando houver evidência (métricas ou relato estruturado), ela ancora a nota; sem evidência, é estimativa.",
+      "descritores": [
+        "Nenhum ganho prático. Mudança cosmética.",
+        "Ganho pequeno em tarefa pouco frequente.",
+        "Ganho perceptível em tarefa regular: reduz tempo ou erro de forma mensurável em uso semanal a diário, mantendo a forma de trabalhar.",
+        "Ganho alto em tarefa frequente: elimina gargalo, contorno manual ou retrabalho recorrente em atividade diária.",
+        "Ganho estrutural: remove uma etapa inteira, um contorno manual obrigatório, ou uma fonte sistemática de erro."
+      ]
+    },
+    {
+      "chave": "complexidade",
+      "rotulo": "Complexidade",
+      "invertido": true,
+      "descricao": "A camada validada na curadoria estabelece o teto da nota; outros fatores (áreas envolvidas, dependências, integrações externas, revisão jurídica ou normativa) puxam a nota para baixo.",
+      "descritores": [
+        "Altíssima. Core SEI ou mudança estrutural; revisão jurídica/normativa formal; prazo e escopo incertos.",
+        "Alta. Módulo PEN ou mudança coordenada em várias frentes; dependências relevantes; entrega em vários meses.",
+        "Média. Vitrine exigente ou extensão do PEN; duas a três áreas; dependências geríveis; possível revisão jurídica leve; entrega em meses.",
+        "Baixa. Grupo ou vitrine simples; uma a duas áreas; entrega em semanas.",
+        "Trivial. Camada de uso local; uma área envolvida; sem dependências; entrega em dias."
+      ]
+    },
+    {
+      "chave": "risco",
+      "rotulo": "Risco",
+      "invertido": true,
+      "descricao": "Chance de a entrega quebrar algo que já funciona, gerar dívida técnica ou criar incompatibilidade.",
+      "descritores": [
+        "Crítico. Pode quebrar funcionalidade ampla; criar incompatibilidade; gerar dívida difícil de desfazer.",
+        "Alto. Mexe em algo crítico ou amplamente usado; reversão custosa.",
+        "Médio. Regressão plausível em pontos identificáveis; mitigável com teste.",
+        "Baixo. Efeito colateral improvável; reversão simples.",
+        "Desprezível. Mudança isolada e reversível."
+      ]
+    }
+  ]
+}

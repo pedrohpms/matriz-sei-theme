@@ -5,6 +5,9 @@
   "license_url": "https://github.com/pedrohpms/matriz-sei-theme/blob/main/LICENSE",
   "theme_version": "0.1.0",
   "color_schemes": {},
-  "assets": {},
+  "assets": {
+    "regua": "javascripts/discourse/regua.json",
+    "tooltips": "javascripts/discourse/tooltips.json"
+  },
   "learn_more": "https://github.com/pedrohpms/matriz-sei-theme/blob/main/README.md"
 }

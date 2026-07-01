@@ -1,5 +1,216 @@
 <!--
-  Reservado para a Iteração 2: aqui entrará o carregamento dos assets
-  (JS/CSS) da calculadora de priorização, injetados no <head> das páginas
-  do ParticiPEN onde o componente estiver ativo. Vazio por enquanto.
+  Skeleton HTML da calculadora, migrado do <body> do index.html do protótipo
+  standalone (pedrohpms/matriz-sei). Fica dentro de um <template>, portanto
+  NÃO é renderizado no DOM ainda — é só instanciado (clonado) quando o botão
+  que abre a calculadora for implementado, na Iteração 3. Tudo está escopado
+  sob .matriz-sei-calc (ver common/common.scss) para não vazar estilo/IDs
+  para o resto do ParticiPEN quando o template for clonado.
 -->
+<template id="matriz-sei-calc-template">
+  <div class="matriz-sei-calc">
+    <header class="topo">
+      <h1>Matriz de priorização do SEI</h1>
+      <p class="subtitulo">
+       RC1 - GPSEI/DTGES, 2026
+        Passo <strong id="progresso-atual">1</strong> de
+        <strong id="progresso-total">6</strong>.
+      </p>
+    </header>
+
+    <!-- Indicador de passos: passo atual + concluídos. Volta a passos
+         anteriores sem perder dados. Renderizado pelo initializer. -->
+    <nav class="stepper" aria-label="Progresso dos passos">
+      <ol id="stepper-lista"></ol>
+    </nav>
+
+    <main>
+      <!-- ============================================================ -->
+      <!-- PASSO 1 — Identificação da demanda                           -->
+      <!-- ============================================================ -->
+      <section class="passo" data-passo="0">
+        <h2>1. Identificação da demanda</h2>
+
+        <!-- Carregamento a partir de um tópico do ParticiPEN (Discourse) -->
+        <div class="topico-loader">
+          <label for="id-topico-url">Carregar do ParticiPEN (URL do tópico)</label>
+          <div class="topico-linha">
+            <input type="url" id="id-topico-url"
+              placeholder="https://…/t/minha-demanda/123" />
+            <button type="button" id="btn-carregar-topico">Carregar</button>
+            <button type="button" id="btn-reextrair" class="secundario" hidden>Re-extrair</button>
+          </div>
+          <p id="topico-aviso" class="aviso" hidden role="status" aria-live="polite"></p>
+          <p class="ajuda">
+            Cole a URL de um tópico do ParticiPEN para puxar os campos
+            automaticamente. Sem URL, preencha manualmente abaixo.
+          </p>
+        </div>
+
+        <!-- Carregar um exemplo pronto ou uma memória de cálculo exportada -->
+        <div class="topico-loader">
+          <label for="id-exemplo-file">Carregar exemplo ou memória salva (JSON)</label>
+          <input type="file" id="id-exemplo-file" accept="application/json,.json" />
+          <p id="exemplo-aviso" class="aviso" role="status" aria-live="polite" hidden></p>
+          <p class="ajuda">
+            Carrega um arquivo de memória de cálculo (JSON) e preenche o fluxo.
+            Os casos prontos estão na pasta <code>exemplos/</code> do repositório standalone.
+          </p>
+        </div>
+
+        <div class="campo">
+          <label for="id-avaliador">Avaliador</label>
+          <input type="text" id="id-avaliador" placeholder="Nome de quem está avaliando" />
+        </div>
+
+        <div class="campo">
+          <label for="id-titulo">Título</label>
+          <input type="text" id="id-titulo" placeholder="Título curto da demanda" />
+        </div>
+
+        <div class="campo">
+          <label for="id-descricao">Descrição curta</label>
+          <textarea id="id-descricao" rows="3"
+            placeholder="O que é a demanda, em poucas linhas"></textarea>
+        </div>
+
+        <div class="campo">
+          <label for="id-link">Link público (opcional)</label>
+          <input type="url" id="id-link" placeholder="https://…" />
+        </div>
+
+        <div class="campo">
+          <label for="id-natureza">Natureza do input</label>
+          <select id="id-natureza"></select>
+          <ul class="tooltip-opcoes" id="natureza-tips"></ul>
+        </div>
+
+        <div class="campo">
+          <label for="id-trilha">Trilha</label>
+          <select id="id-trilha"></select>
+        </div>
+
+        <div class="campo">
+          <label for="id-camada">Camada proposta</label>
+          <select id="id-camada"></select>
+        </div>
+
+        <div class="campo">
+          <label for="id-dependencias">Dependências</label>
+          <textarea id="id-dependencias" rows="2"
+            placeholder="Dependências técnicas ou normativas (texto livre)"></textarea>
+        </div>
+
+        <div class="campo">
+          <label for="id-evidencia">Evidência</label>
+          <textarea id="id-evidencia" rows="2"
+            placeholder="Evidências ou métricas trazidas pelo solicitante"></textarea>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- PASSO 2 — Triagem (ato vinculado / piso)                    -->
+      <!-- ============================================================ -->
+      <section class="passo" data-passo="1" hidden>
+        <h2>2. Triagem — ato vinculado</h2>
+        <p class="ajuda">
+          O <strong>ato vinculado</strong> é uma obrigação normativa: a norma
+          manda, sem juízo discricionário. Marque os gatilhos acionados — se
+          qualquer um for marcado, a demanda recebe score fixo de 20 (prioridade
+          absoluta), pulando a pontuação.
+        </p>
+        <div id="triagem-gatilhos" class="grupo-checkbox"></div>
+        <p id="triagem-aviso" class="aviso alerta" role="status" aria-live="polite" hidden></p>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- PASSO 3 — Curadoria de camada                                -->
+      <!-- ============================================================ -->
+      <section class="passo" data-passo="2" hidden>
+        <h2>3. Curadoria de camada</h2>
+        <p class="ajuda">
+          Camada proposta no Passo 1:
+          <strong id="curadoria-proposta">—</strong>.
+          Confirme ou redirecione. A camada validada estabelece o teto da nota
+          de Complexidade no Passo 4.
+        </p>
+        <div class="campo">
+          <label for="curadoria-camada">Camada validada</label>
+          <select id="curadoria-camada"></select>
+          <ul class="tooltip-opcoes" id="camada-tips"></ul>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- PASSO 4 — Pontuação dos cinco critérios                      -->
+      <!-- ============================================================ -->
+      <section class="passo" data-passo="3" hidden>
+        <h2>4. Pontuação dos critérios</h2>
+        <p class="ajuda">
+          Escolha um descritor por critério. Soma simples (0 a 20),
+          atualizada em tempo real:
+          <strong id="score-live" class="score-live">0 / 20</strong>
+        </p>
+        <div id="criterios"></div>
+
+        <!-- Override do teto de Complexidade (revelado quando a nota excede o teto) -->
+        <div id="override-complexidade" class="override-box" hidden>
+          <p id="override-alerta" class="aviso alerta" aria-live="polite"></p>
+          <div class="campo">
+            <label for="override-justificativa">
+              Justificativa do override <span class="obrigatorio">(obrigatória)</span>
+            </label>
+            <textarea id="override-justificativa" rows="3"
+              placeholder="Por que a complexidade real é menor do que o típico desta camada?"></textarea>
+          </div>
+          <p id="override-pendencia" class="ajuda" role="alert" hidden>
+            Preencha a justificativa do override antes de avançar.
+          </p>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- PASSO 5 — Filtros automáticos                                -->
+      <!-- ============================================================ -->
+      <section class="passo" data-passo="4" hidden>
+        <h2>5. Filtros automáticos</h2>
+        <p class="ajuda">
+          Regra: nota <strong>0</strong> em impacto institucional
+          <strong>E</strong> nota <strong>0</strong> em ganho operacional
+          encerra a demanda como conveniência estritamente local.
+        </p>
+        <ul class="resumo-filtros">
+          <li>Impacto institucional: <strong id="filtro-impacto">—</strong></li>
+          <li>Ganho operacional: <strong id="filtro-ganho">—</strong></li>
+        </ul>
+        <p id="filtro-status" class="aviso neutro" role="status" aria-live="polite">—</p>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- PASSO 6 — Memória de cálculo                                 -->
+      <!-- ============================================================ -->
+      <section class="passo" data-passo="5" hidden>
+        <h2>6. Memória de cálculo</h2>
+        <p id="memoria-desfecho" class="aviso" role="status" aria-live="polite" hidden></p>
+        <p class="ajuda">
+          Dois formatos com a mesma informação: o Markdown abaixo (para colar no
+          Discourse) e o JSON para download (arquivamento/processamento).
+        </p>
+        <div class="acoes-memoria">
+          <button type="button" id="btn-copiar-md">Copiar markdown</button>
+          <button type="button" id="btn-baixar-json">Baixar JSON</button>
+          <button type="button" id="btn-regenerar" class="secundario">Regenerar</button>
+          <span id="copia-feedback" class="feedback" role="status"></span>
+        </div>
+        <textarea id="memoria-saida" rows="22" readonly
+          aria-label="Memória de cálculo em Markdown"></textarea>
+      </section>
+    </main>
+
+    <!-- Navegação fixa -->
+    <footer class="rodape-nav">
+      <button type="button" id="btn-voltar">← Voltar</button>
+      <span class="score-rodape">Score: <strong id="score-rodape">0 / 20</strong></span>
+      <button type="button" id="btn-avancar">Avançar →</button>
+    </footer>
+  </div>
+</template>

@@ -23,11 +23,33 @@ poucos cliques feita pelo painel administrativo do Discourse.
 
 ## O que ele faz (nesta versão)
 
-Esta é a primeira entrega do componente: apenas a estrutura mínima exigida
-pelo Discourse para que ele possa ser instalado e habilitado. Ainda não há
-nenhuma funcionalidade visível — a calculadora em si (telas, cálculo de
-pontuação, geração de memória de decisão) será adicionada nas próximas
-iterações.
+O componente está na Iteração 2: os dados e o código da calculadora
+(originalmente no protótipo standalone
+[pedrohpms/matriz-sei](https://github.com/pedrohpms/matriz-sei)) já foram
+migrados para dentro do theme component, mas **ainda não aparece nada
+visualmente no fórum**. O botão que abre a calculadora dentro de um tópico do
+ParticiPEN é a Iteração 3.
+
+## Estrutura de assets
+
+- `javascripts/discourse/initializers/matriz-sei-calc-init.js` — o código da
+  calculadora, carregado pelo Discourse como *initializer* (roda uma vez,
+  quando o fórum inicializa). Nesta iteração ele só carrega os dados de
+  `regua.json`/`tooltips.json` e confirma no console do navegador que rodou
+  (`console.info("Matriz SEI calc initializer carregado")`); ainda não monta
+  a interface.
+- `javascripts/discourse/regua.json` e `javascripts/discourse/tooltips.json`
+  — os dados da régua de critérios e dos textos de ajuda contextual.
+  Declarados em `about.json` sob `"assets"`, o que faz o Discourse
+  disponibilizá-los por URL própria em runtime (acessível pelo initializer
+  via `settings.theme_uploads.regua` e `settings.theme_uploads.tooltips`).
+- `common/common.scss` — o estilo visual da calculadora, escopado sob a
+  classe `.matriz-sei-calc` para não vazar para o resto do fórum.
+- `common/head_tag.html` — o HTML da calculadora, dentro de um
+  `<template id="matriz-sei-calc-template">`. Um `<template>` não é
+  renderizado automaticamente; ele só vira tela quando algo o clonar para
+  dentro do DOM — isso é o que a Iteração 3 vai fazer, ao abrir a
+  calculadora num modal.
 
 ## Como instalar
 
