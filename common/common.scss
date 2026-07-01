@@ -1,25 +1,46 @@
 // Calculadora da matriz de priorização do SEI — estilo.
 // Migrado do styles.css do protótipo standalone (pedrohpms/matriz-sei), agora
 // escopado sob .matriz-sei-calc via aninhamento SCSS para não vazar estilo
-// para o resto do Discourse. `:root` virou variáveis CSS locais à classe;
+// para o resto do Discourse.
+//
+// Iteração 6 (polimento): as cores deixaram de ser uma paleta própria fixa e
+// passaram a apontar para as variáveis de color scheme do próprio Discourse
+// (--primary, --secondary, --tertiary, --danger, --success, --tertiary-low
+// etc., definidas globalmente pelo core em runtime a partir do scheme ativo).
+// Os nomes semânticos abaixo (--cor-primaria, --cor-texto, ...) continuam
+// existindo — só o valor por trás mudou — para não reescrever cada
+// declaração no resto do arquivo. Resultado prático: se o admin trocar o
+// color scheme do fórum (ou o usuário estiver em dark mode via o scheme
+// "Automático"), a calculadora acompanha automaticamente, sem regra
+// `@media (prefers-color-scheme: dark)` nenhuma — é o Discourse quem já
+// recalcula essas variáveis no :root.
+//
+// Duas exceções deliberadas, que ficam hardcoded mesmo:
+//  (a) texto branco (#fff) sobre superfícies pintadas com --cor-primaria
+//      (cabeçalho, botões, badges) — mesma convenção do próprio Discourse
+//      (o .btn-primary do core também fixa branco sobre --tertiary), porque
+//      no dark scheme --secondary vira escuro e daria baixo contraste se
+//      fosse usado aqui;
+//  (b) o anel de foco (--cor-foco), amarelo de alto contraste, é uma escolha
+//      de acessibilidade deliberada e independente do scheme (ver comentário
+//      mais abaixo).
 // `html { font-size: 100%; }` foi omitido (o componente não pode redefinir a
 // tag <html>); as regras que estavam em `body` (margin, fonte, cor, etc.)
 // viraram propriedades diretas de `.matriz-sei-calc`.
 .matriz-sei-calc {
-  /* Cores (contraste verificado para WCAG AA — 4.5:1 em texto normal) */
-  --cor-primaria: #1351b4;       /* azul gov.br */
-  --cor-primaria-escura: #0c3a82;
-  --cor-fundo: #f5f7fa;
-  --cor-painel: #ffffff;
-  --cor-texto: #1c2733;          /* ~13:1 sobre branco */
-  --cor-texto-fraco: #45525e;    /* ~7:1 sobre branco */
-  --cor-borda: #c2cdd6;
-  --cor-ok: #176b38;             /* verde escuro — AA sobre fundo claro */
-  --cor-ok-fundo: #e7f6ec;
-  --cor-alerta: #9a3d00;         /* laranja escuro — AA sobre fundo claro */
-  --cor-alerta-fundo: #fff3e8;
-  --cor-info-fundo: #eef3f8;
-  --cor-foco: #ffcd07;           /* anel de foco amarelo (alto contraste) */
+  /* Cores: aliases semânticos sobre as variáveis de color scheme do Discourse */
+  --cor-primaria: var(--tertiary);          /* ação/destaque — acompanha o scheme */
+  --cor-fundo: var(--primary-very-low);     /* fundo "sunken" do container */
+  --cor-painel: var(--secondary);           /* fundo dos cartões/painéis internos */
+  --cor-texto: var(--primary);
+  --cor-texto-fraco: var(--primary-medium);
+  --cor-borda: var(--primary-low);
+  --cor-ok: var(--success);
+  --cor-ok-fundo: var(--success-low);
+  --cor-alerta: var(--danger);
+  --cor-alerta-fundo: var(--danger-low);
+  --cor-info-fundo: var(--tertiary-low);
+  --cor-foco: #ffcd07;           /* anel de foco amarelo (alto contraste, fixo por design) */
   --raio: 6px;
 
   margin: 0;
@@ -46,7 +67,7 @@
   /* --- Cabeçalho -------------------------------------------------------- */
   .topo {
     background: var(--cor-primaria);
-    color: #fff;
+    color: #fff; /* branco fixo — ver nota (a) no topo do arquivo */
     padding: 1rem 1.25rem;
   }
   .topo h1 { margin: 0 0 .25rem; font-size: 1.35rem; }
@@ -85,7 +106,7 @@
     height: 1.7rem;
     flex-shrink: 0;
     border-radius: 50%;
-    background: #e3e9ef;
+    background: var(--cor-borda);
     color: var(--cor-texto);
     font-size: .85rem;
     font-weight: 700;
@@ -141,7 +162,12 @@
   .topico-loader .ajuda { margin-top: .6rem; }
   .topico-loader .aviso { margin-top: .6rem; }
 
-  /* --- Tooltips contextuais (ícone ⓘ + popover discreto) ---------------- */
+  /* --- Tooltips contextuais (ícone ⓘ + popover discreto) ----------------
+   * Gatilhos: hover, foco (Tab) e clique/tap — o clique/tap alterna um
+   * estado "fixado" (ver criarTooltipEl no initializer) justamente para
+   * funcionar em telas de toque, onde não existe hover. Confirmado que essa
+   * lógica (Patch 3) segue intacta nesta iteração; nenhuma mudança de estilo
+   * aqui afeta o comportamento de toque, só a paleta. */
   .tip-wrap {
     position: relative;
     display: inline-flex;
@@ -161,7 +187,7 @@
     cursor: help;
     border-radius: 50%;
   }
-  .tip-icon:hover { background: none; color: var(--cor-primaria-escura); }
+  .tip-icon:hover { background: none; filter: brightness(80%); }
   .tip-popover {
     position: absolute;
     top: calc(100% + 6px);
@@ -215,7 +241,7 @@
     border-radius: var(--raio);
     font: inherit;
     color: var(--cor-texto);
-    background: #fff;
+    background: var(--cor-painel);
   }
   .campo textarea { resize: vertical; }
 
@@ -233,7 +259,7 @@
   .checkbox-linha input { width: auto; }
   .checkbox-linha:has(input:checked) {
     border-color: var(--cor-primaria);
-    background: #eaf1fb;
+    background: var(--cor-info-fundo);
   }
 
   /* --- Critérios e descritores ------------------------------------------ */
@@ -289,8 +315,8 @@
     border-radius: var(--raio);
     cursor: pointer;
   }
-  .descritor-linha:hover { background: #f0f4f9; }
-  .descritor-linha:has(input:checked) { background: #eaf1fb; }
+  .descritor-linha:hover { background: var(--cor-fundo); }
+  .descritor-linha:has(input:checked) { background: var(--cor-info-fundo); }
   .descritor-linha:has(input:focus-visible) {
     outline: 3px solid var(--cor-foco);
     outline-offset: 1px;
@@ -303,7 +329,7 @@
     min-width: 1.6rem;
     height: 1.6rem;
     background: var(--cor-primaria);
-    color: #fff;
+    color: #fff; /* branco fixo — ver nota (a) no topo do arquivo */
     border-radius: 50%;
     font-size: .85rem;
     font-weight: 700;
@@ -342,7 +368,7 @@
     padding: .75rem 1rem;
     border: 1px solid var(--cor-alerta);
     border-radius: var(--raio);
-    background: #fff9f3;
+    background: var(--cor-alerta-fundo);
   }
   .obrigatorio { color: var(--cor-alerta); font-weight: 600; }
 
@@ -355,7 +381,7 @@
     padding: 0;
     font: inherit;
   }
-  button.link:hover { color: var(--cor-primaria-escura); }
+  button.link:hover { filter: brightness(80%); }
 
   /* Soma em tempo real — proeminente */
   .score-live {
@@ -400,7 +426,7 @@
     padding: .75rem;
     border: 1px solid var(--cor-borda);
     border-radius: var(--raio);
-    background: #fbfcfe;
+    background: var(--cor-painel);
     color: var(--cor-texto);
   }
   .feedback { font-size: .95rem; color: var(--cor-ok); font-weight: 600; }
@@ -412,24 +438,26 @@
     padding: .55rem 1.1rem;
     border: 1px solid var(--cor-primaria);
     background: var(--cor-primaria);
-    color: #fff;
+    color: #fff; /* branco fixo — ver nota (a) no topo do arquivo */
     border-radius: var(--raio);
     font-weight: 600;
   }
-  button:hover { background: var(--cor-primaria-escura); border-color: var(--cor-primaria-escura); }
+  button:hover { filter: brightness(88%); }
   button:disabled { opacity: .45; cursor: not-allowed; }
   button.secundario {
-    background: #fff;
+    background: var(--cor-painel);
     color: var(--cor-primaria);
   }
-  button.secundario:hover { background: var(--cor-info-fundo); }
+  button.secundario:hover { background: var(--cor-info-fundo); filter: none; }
 
   /* --- Rodapé de navegação ------------------------------------------------
    * Iteração 3: era `position: fixed` no protótipo standalone (fixo à
    * viewport da página inteira). Dentro do modal (.matriz-sei-dialog tem
    * scroll próprio) isso faria o rodapé colar no fundo da JANELA do
    * navegador, fora do diálogo. `sticky` gruda no fundo da ÁREA COM SCROLL
-   * mais próxima (o próprio diálogo), que é o comportamento certo aqui. */
+   * mais próxima (o próprio diálogo), que é o comportamento certo aqui —
+   * inclusive em mobile, onde o diálogo ocupa a tela inteira (ver media
+   * query de .matriz-sei-dialog mais abaixo). */
   .rodape-nav {
     position: sticky;
     bottom: 0;
@@ -459,13 +487,14 @@
   }
 }
 
-// --- Modal (Iteração 3) --------------------------------------------------
+// --- Modal ------------------------------------------------------------
 // Moldura do overlay que hospeda a calculadora (ver criarOverlayComCalculadora
 // no initializer). Fica FORA de .matriz-sei-calc de propósito: o overlay e o
 // diálogo ENVOLVEM .matriz-sei-calc, não o contrário, e variáveis CSS
-// (custom properties) só herdam para baixo na árvore — as var() de
-// .matriz-sei-calc não estariam visíveis aqui. Nomes com prefixo
-// `matriz-sei-` para não colidir com classes do próprio Discourse.
+// (custom properties) só herdam para baixo na árvore — os aliases --cor-*
+// de .matriz-sei-calc não estariam visíveis aqui, então usamos as variáveis
+// do Discourse diretamente. Nomes com prefixo `matriz-sei-` para não colidir
+// com classes do próprio Discourse.
 .matriz-sei-overlay {
   position: fixed;
   inset: 0;
@@ -478,7 +507,7 @@
 .matriz-sei-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(20, 25, 30, .6);
+  background: rgba(20, 25, 30, .6); /* dimming fixo — funciona sobre fundo claro ou escuro */
 }
 .matriz-sei-dialog {
   position: relative;
@@ -487,7 +516,7 @@
   max-width: 900px;
   max-height: 90vh;
   overflow-y: auto;
-  background: #fff;
+  background: var(--secondary);
   border-radius: 8px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, .35);
 }
@@ -499,12 +528,27 @@
   width: 2.2rem;
   height: 2.2rem;
   border: none;
-  background: #fff;
-  color: #1c2733;
+  background: var(--secondary);
+  color: var(--primary);
   font-size: 1.4rem;
   line-height: 1;
   border-radius: 50%;
   cursor: pointer;
   z-index: 2;
 }
-.matriz-sei-fechar:hover { background: #eef3f8; }
+.matriz-sei-fechar:hover { background: var(--primary-low); }
+
+// Mobile (< 768px): o diálogo vira uma folha de tela cheia — sem borda
+// arredondada, sem respiro do overlay em volta — para aproveitar toda a
+// largura útil (critério de pronto da Iteração 6). O scroll interno
+// (overflow-y: auto) e o rodapé sticky continuam funcionando do mesmo jeito,
+// só a moldura externa muda.
+@media (max-width: 768px) {
+  .matriz-sei-overlay { padding: 0; }
+  .matriz-sei-dialog {
+    max-width: 100%;
+    max-height: 100%;
+    height: 100%;
+    border-radius: 0;
+  }
+}
