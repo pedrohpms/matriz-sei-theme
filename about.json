@@ -3,11 +3,8 @@
   "component": true,
   "authors": "Pedro Moreira / GPSEI",
   "license_url": "https://github.com/pedrohpms/matriz-sei-theme/blob/main/LICENSE",
-  "theme_version": "1.0.0",
+  "theme_version": "1.0.1",
   "color_schemes": {},
-  "assets": {
-    "regua": "javascripts/discourse/regua.json",
-    "tooltips": "javascripts/discourse/tooltips.json"
-  },
+  "assets": {},
   "learn_more": "https://github.com/pedrohpms/matriz-sei-theme/blob/main/README.md"
 }

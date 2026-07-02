@@ -69,19 +69,17 @@ export default {
         { chave: "continuidade", rotulo: "Continuidade do serviço", tooltip: "piso_continuidade_operacional" },
       ];
 
-      // Os cinco critérios da matriz vêm da régua canônica (assets/regua.json,
-      // exposta pelo Discourse em settings.theme_uploads.regua), carregada em
-      // carregarDadosBase(). O fluxo só consome este array — não conhece os
-      // textos dos descritores.
+      // Os cinco critérios da matriz vêm da régua canônica (REGUA_DATA, mais
+      // abaixo), populados por carregarDadosBase(). O fluxo só consome este
+      // array — não conhece os textos dos descritores.
       let CRITERIOS = [];
 
-      // Conteúdo dos tooltips (assets/tooltips.json), no formato { chave: texto }.
-      // Preenchido por carregarTooltips(); vazio se a carga falhar (enhancement).
+      // Conteúdo dos tooltips (TOOLTIPS_DATA, mais abaixo), no formato
+      // { chave: texto }. Preenchido por carregarDadosBase().
       let TOOLTIPS = {};
 
-      // Versão semver da régua (regua.json → versao). Antes vinha de
-      // window.REGUA.versao (script global); agora é um estado local,
-      // preenchido junto com CRITERIOS.
+      // Versão semver da régua (REGUA_DATA.versao), preenchida junto com
+      // CRITERIOS em carregarDadosBase().
       let reguaVersao = "desconhecida";
 
       const TOTAL_PASSOS = 6;
@@ -1511,61 +1509,138 @@ ${corpoFinal}
       }
 
       /* ---------------------------------------------------------------- *
-       * Carregamento dos dados-base (régua + tooltips)
+       * Dados-base: régua de critérios e tooltips contextuais
        *
-       * ADAPTAÇÃO relevante: no protótipo standalone, regua.js/tooltips.js
-       * eram carregados injetando um <script> clássico que expunha um objeto
-       * global (window.REGUA/window.TOOLTIPS) — truque para contornar o
-       * bloqueio de fetch/import em file://. Como theme component, os dados
-       * já são assets HTTP normais do Discourse (declarados em about.json,
-       * expostos em settings.theme_uploads.<nome>), então o truque de script
-       * global não faz mais sentido: carregamos com fetch() + JSON, como em
-       * qualquer app web comum.
+       * ADAPTAÇÃO (pós-v1.0.0): até então esses dados eram assets declarados
+       * em about.json (regua.json/tooltips.json), buscados por fetch em
+       * settings.theme_uploads.<nome>. Na prática, isso faz o Discourse
+       * tratar os arquivos como UPLOADS de verdade — mesmo pipeline usado
+       * para anexos de posts — sujeitos à configuração de site
+       * `authorized_extensions`. Como "json" não vem liberado por padrão, a
+       * instalação real travava até o admin alterar essa configuração
+       * global do fórum, só para instalar o tema. Os dados agora ficam
+       * embutidos como código JS (mesma ideia do regua.js/tooltips.js do
+       * protótipo standalone) — código-fonte do tema não passa pelo filtro
+       * de extensões, então a instalação não depende de nenhuma configuração
+       * extra do site. Como bônus, a carga fica síncrona (sem fetch, sem
+       * promise a aguardar, sem 404 possível).
        * ---------------------------------------------------------------- */
 
-      async function carregarRegua() {
-        const resp = await fetch(settings.theme_uploads.regua);
-        if (!resp.ok) throw new Error("HTTP " + resp.status);
-        const regua = await resp.json();
-        if (!regua || !Array.isArray(regua.criterios)) {
-          throw new Error("regua.json carregou, mas .criterios não está definido.");
-        }
-        return regua;
-      }
+      const REGUA_DATA = {
+        versao: "1.2.0",
+        atualizadoEm: "2026-06-23",
+        criterios: [
+          {
+            chave: "impacto",
+            rotulo: "Impacto institucional",
+            invertido: false,
+            descricao: {
+              intro: "Este critério avalia o aspecto discricionário da demanda - se há conveniência e oportunidade de atendimento.",
+              aspectosIntro: "Avalie a demanda quanto a qualquer um destes aspectos:",
+              aspectos: [
+                "alinhamento com prioridade de governo (explícita, declarada);",
+                "recomendação de órgão de controle (não vinculante);",
+                "compromisso firmado (ACTs, MoUs, pactos, convênios);",
+                "visibilidade externa do SEI (imprensa, reputação);",
+                "diretriz setorial de ministério ou autarquia de cúpula (mesmo vindas de fora da SEGES/MGI).",
+              ],
+              regra: "Se mais de um aspecto estiver presente, considere a dimensão mais marcante - não some várias; atribua a nota pela que pesar mais forte. Em seguida, escolha o nível na escala abaixo.",
+              observacoes: [
+                "Observação 1: aqui não entra exigência legal - Obrigação legal é ato vinculado, tratada na triagem. Se for o caso, volte à etapa de triagem e assinale a opção correspondente.",
+                "Observação 2: determinação de órgão de controle também é ato vinculado e não entra aqui. Se a recomendação já se tornou determinação, volte à triagem e assinale.",
+              ],
+            },
+            descritores: [
+              "Nenhuma das dimensões aparece. Demanda de conveniência local.",
+              "Uma dimensão aparece de forma marginal: diretriz informal local, tema lateral em reunião com controle sem recomendação formal, ou visibilidade restrita a um grupo pequeno.",
+              "Uma dimensão aparece com peso médio: normativa setorial que afeta um grupo de órgãos; diretriz formal da SEGES/MGI; recomendação não-vinculante em relatório de auditoria; visibilidade entre usuários do SEI sem repercussão externa.",
+              "Uma dimensão aparece forte: programa ou compromisso formal de governo transversal; diretriz setorial muito ampla e cobrada; recomendação reiterada de órgão de controle; citação na imprensa ou exposição a usuário externo de forma sensível.",
+              "Dimensão crítica dentro do discricionário: programa prioritário de governo com prazo e cobrança; recomendação reiterada de controle sob forte pressão (sem ainda configurar determinação); compromisso público com sociedade civil cobrado em conselho; risco reputacional concreto.",
+            ],
+          },
+          {
+            chave: "orgaos",
+            rotulo: "Quantidade de órgãos afetados",
+            invertido: false,
+            descricao: "Quantos entes da esfera federal se beneficiam. Em ambiguidade entre número e segmento, prevalece o segmento.",
+            descritores: [
+              "1 órgão, em uso estritamente local, sem reuso possível.",
+              "2 a 5 órgãos pontuais.",
+              "Um grupo temático ou subconjunto de um segmento (6 a 30 órgãos - por exemplo, agências reguladoras de infraestrutura).",
+              "Um segmento inteiro (toda a Direta, toda a Indireta, todas as Agências, ou todas as Estatais), ou múltiplos grupos (31 a 150 órgãos).",
+              "Múltiplos segmentos, ou transversal à esfera federal (>150 órgãos).",
+            ],
+          },
+          {
+            chave: "ganho",
+            rotulo: "Ganho operacional",
+            invertido: false,
+            descricao: "Ganho típico para um órgão que adota a solução, desacoplado do solicitante. Quando houver evidência (métricas ou relato estruturado), ela ancora a nota; sem evidência, é estimativa.",
+            descritores: [
+              "Nenhum ganho prático. Mudança cosmética.",
+              "Ganho pequeno em tarefa pouco frequente.",
+              "Ganho perceptível em tarefa regular: reduz tempo ou erro de forma mensurável em uso semanal a diário, mantendo a forma de trabalhar.",
+              "Ganho alto em tarefa frequente: elimina gargalo, contorno manual ou retrabalho recorrente em atividade diária.",
+              "Ganho estrutural: remove uma etapa inteira, um contorno manual obrigatório, ou uma fonte sistemática de erro.",
+            ],
+          },
+          {
+            chave: "complexidade",
+            rotulo: "Complexidade",
+            invertido: true,
+            descricao: "A camada validada na curadoria estabelece o teto da nota; outros fatores (áreas envolvidas, dependências, integrações externas, revisão jurídica ou normativa) puxam a nota para baixo.",
+            descritores: [
+              "Altíssima. Core SEI ou mudança estrutural; revisão jurídica/normativa formal; prazo e escopo incertos.",
+              "Alta. Módulo PEN ou mudança coordenada em várias frentes; dependências relevantes; entrega em vários meses.",
+              "Média. Vitrine exigente ou extensão do PEN; duas a três áreas; dependências geríveis; possível revisão jurídica leve; entrega em meses.",
+              "Baixa. Grupo ou vitrine simples; uma a duas áreas; entrega em semanas.",
+              "Trivial. Camada de uso local; uma área envolvida; sem dependências; entrega em dias.",
+            ],
+          },
+          {
+            chave: "risco",
+            rotulo: "Risco",
+            invertido: true,
+            descricao: "Chance de a entrega quebrar algo que já funciona, gerar dívida técnica ou criar incompatibilidade.",
+            descritores: [
+              "Crítico. Pode quebrar funcionalidade ampla; criar incompatibilidade; gerar dívida difícil de desfazer.",
+              "Alto. Mexe em algo crítico ou amplamente usado; reversão custosa.",
+              "Médio. Regressão plausível em pontos identificáveis; mitigável com teste.",
+              "Baixo. Efeito colateral improvável; reversão simples.",
+              "Desprezível. Mudança isolada e reversível.",
+            ],
+          },
+        ],
+      };
 
-      async function carregarTooltips() {
-        const resp = await fetch(settings.theme_uploads.tooltips);
-        if (!resp.ok) throw new Error("HTTP " + resp.status);
-        return resp.json();
-      }
+      const TOOLTIPS_DATA = {
+        natureza_problema: "Demanda que entra como dor sem solução fechada. A solução nasce no fluxo (curadoria, deliberação, eventualmente GT). Evidência é recomendada quando houver dado disponível, mas não é obrigatória.",
+        natureza_pratica: "Demanda que entra como solução já rodando em algum órgão. O pedido é difundir a prática para uma camada superior (por exemplo, de uso local para grupo, ou de grupo para vitrine). Evidência é obrigatória — métricas ou relato estruturado da área que opera a prática.",
+        dependencias: "Liste o que pode atrasar, bloquear ou ser destravado por esta demanda. Pode ser técnico (outra solução, integração com sistema externo, infraestrutura) ou normativo (norma a publicar, decisão jurídica, parecer aguardando). Se não houver, deixe em branco.",
+        evidencia: "O que comprova que a demanda merece atenção. Pode ser quantitativo (tempo gasto na tarefa hoje, taxa de erro, número de execuções, volume de processos, quantidade de órgãos com o mesmo problema) ou qualitativo (relato estruturado de quem opera a prática que se quer difundir, ou de quem vive o problema).",
+        piso_obrigacao_legal: "A demanda decorre de exigência prevista em lei, decreto ou regulamento de hierarquia equivalente — o cumprimento não comporta juízo de conveniência. Exemplos: implementar o que a LGPD exige, atender exigência do Marco Civil, cumprir disposição direta do Decreto 8.539/15.",
+        piso_determinacao_controle: "TCU, CGU ou Ministério Público determinaram (não apenas recomendaram) que a ação seja tomada. Determinação tem peso vinculante; recomendação não — recomendação fica no critério Impacto institucional, não aqui.",
+        piso_falha_seguranca: "Vulnerabilidade que expõe dados, autenticação ou integridade do SEI a risco direto. Exemplos: vulnerabilidade reportada por CVE, falha em controle de acesso, brecha em assinatura eletrônica, exposição de dados pessoais.",
+        piso_sustentacao_tecnologica: "Manter o produto tecnologicamente viável — atualizar versões de runtime, bibliotecas ou dependências que entraram em fim de vida ou perderam suporte do mantenedor. Exemplos: migrar versão de banco em EOL, trocar biblioteca de criptografia obsoleta, atualizar runtime que parou de receber patches de segurança.",
+        piso_continuidade_operacional: "Manter o serviço em funcionamento para quem usa. Não é manutenção técnica preventiva (essa é Sustentação) — é resposta a ameaça concreta à disponibilidade ou capacidade do SEI em produção. Exemplos: conter queda recorrente de servidor, restaurar backup quebrado, ampliar capacidade saturada, corrigir falha que causa indisponibilidade intermitente.",
+        camada_uso_local: "Solução vive dentro de um único órgão, sem precisar ser compartilhada. Configuração, template ou automação isolada. Mantida pelo próprio órgão, sem envolvimento do PEN. Estabelece teto 4 (baixa complexidade) para o critério Complexidade.",
+        camada_grupo: "Solução compartilhada entre alguns órgãos do mesmo segmento ou interesse comum, sem virar produto formal do PEN. Mantida pelo desenvolvedor original; o PEN monitora crescimento e media conflitos eventuais. Estabelece teto 3 para Complexidade.",
+        camada_vitrine: "Solução já difundida, com versionamento e documentação, instalável por quem quiser. Mantida pelo desenvolvedor, com PEN supervisionando suporte e oferecendo apoio ocasional em escala. Não modifica o SEI nem o PEN. Estabelece teto 3 para Complexidade (2 em vitrines exigentes).",
+        camada_modulo_pen: "Solução vira módulo oficial do ProcessoEletrônicoNacional, integrado ao SEI por interfaces oficiais. Mantida pelo PEN, ou homologada e mantida externamente pelo desenvolvedor original com SLA acordado. Estabelece teto 1 para Complexidade.",
+        camada_core_sei: "Solução modifica o código-fonte do próprio SEI. Exige revisão da DTGES, atenção ao Art. 24 do Decreto 8.539/15 (exclusividade do código-fonte) e testes amplos de regressão. Estabelece nota fixa 0 para Complexidade (sem possibilidade de override).",
+      };
 
-      // Carrega régua e tooltips e popula CRITERIOS/TOOLTIPS/reguaVersao.
-      // É a única coisa que este initializer executa nesta iteração — não
-      // toca no DOM da calculadora, que ainda não existe (ver comentário no
-      // topo do arquivo e em montarInterface()).
-      async function carregarDadosBase() {
-        try {
-          const regua = await carregarRegua();
-          CRITERIOS = regua.criterios;
-          reguaVersao = regua.versao || "desconhecida";
-          CRITERIOS.forEach((c) => {
-            estado.pontuacao[c.chave] = null;
-            estado.observacoes[c.chave] = "";
-          });
-          console.info("Matriz SEI calc: regua.json carregada", regua);
-        } catch (erro) {
-          console.error("Matriz SEI calc: falha ao carregar regua.json —", erro.message);
-          return;
-        }
-
-        // Tooltips são um aprimoramento — se a carga falhar, segue sem eles.
-        try {
-          TOOLTIPS = await carregarTooltips();
-          console.info("Matriz SEI calc: tooltips.json carregado", TOOLTIPS);
-        } catch (erro) {
-          TOOLTIPS = {};
-          console.error("Matriz SEI calc: falha ao carregar tooltips.json —", erro.message);
-        }
+      // Popula CRITERIOS/TOOLTIPS/reguaVersao a partir dos dados embutidos
+      // acima. Síncrono — não há fetch nem promise a aguardar.
+      function carregarDadosBase() {
+        CRITERIOS = REGUA_DATA.criterios;
+        reguaVersao = REGUA_DATA.versao || "desconhecida";
+        CRITERIOS.forEach((c) => {
+          estado.pontuacao[c.chave] = null;
+          estado.observacoes[c.chave] = "";
+        });
+        TOOLTIPS = TOOLTIPS_DATA;
+        console.info("Matriz SEI calc: régua e tooltips carregadas", REGUA_DATA);
       }
 
       /* ---------------------------------------------------------------- *
@@ -1678,10 +1753,8 @@ ${corpoFinal}
         const raiz = criarOverlayComCalculadora();
         if (!raiz) return;
 
-        // Se o clique veio antes de carregarDadosBase() terminar (ex.: clique
-        // muito rápido após o carregamento da página), espera a régua/tooltips
-        // — montarInterface() depende de CRITERIOS já populado.
-        await dadosBaseProntos;
+        // Dados-base (régua/tooltips) são embutidos e já foram carregados de
+        // forma síncrona na inicialização — sem fetch, sem promise a esperar.
         montarInterface();
 
         // store.find("post", id) devolve o post via Store interna do
@@ -1777,21 +1850,24 @@ ${corpoFinal}
           abrirCalculadoraParaTopico(this.topic);
         },
         displayed() {
-          const bruto = (settings.demandas_category_id || "").toString().trim();
-          if (!bruto) return false; // modo desligado
-          const catId = parseInt(bruto, 10);
-          if (Number.isNaN(catId)) return false;
+          // demandas_category_id é setting do tipo integer — settings.* vem
+          // como número, mas Number() protege contra qualquer valor
+          // inesperado (string vazia, undefined) sem quebrar.
+          const catId = Number(settings.demandas_category_id) || 0;
+          if (!catId) return false; // 0 = modo desligado
           if (this.topic.category_id !== catId) {
-            return false; // tópico fora da categoria configurada — comportamento esperado
+            // Não loga aqui de propósito: displayed() roda pra todo tópico da
+            // instância, e "categoria diferente da configurada" é o caso
+            // comum/esperado na esmagadora maioria deles — logar isso
+            // encheria o console de ruído em vez de ajudar a diagnosticar.
+            return false;
           }
           return usuarioNoGrupoAutorizado();
         },
       });
 
-      // Carrega e valida os dados-base assim que o initializer roda; guardado
-      // em dadosBaseProntos para abrirCalculadoraParaTopico() poder aguardar
-      // caso o clique no botão aconteça antes da carga terminar.
-      const dadosBaseProntos = carregarDadosBase();
+      // Carrega os dados-base assim que o initializer roda (síncrono).
+      carregarDadosBase();
     });
   },
 };

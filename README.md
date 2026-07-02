@@ -21,7 +21,7 @@ e são responsáveis por triar e priorizar as demandas do SEI. Não é necessár
 conhecimento técnico para usar — instalar o componente é uma operação de
 poucos cliques feita pelo painel administrativo do Discourse.
 
-## O que ele faz (v1.0.0)
+## O que ele faz (v1.0.1)
 
 Nos tópicos da categoria configurada, aparece um botão **"Abrir na
 calculadora"** no rodapé do tópico — visível só para quem está logado **e**
@@ -49,20 +49,16 @@ O código da calculadora vem do protótipo standalone
 
 - `javascripts/discourse/initializers/matriz-sei-calc-init.js` — o código da
   calculadora, carregado pelo Discourse como *initializer* (roda uma vez,
-  quando o fórum inicializa). Carrega `regua.json`/`tooltips.json`, registra
-  o botão de rodapé do tópico (`api.registerTopicFooterButton`) e contém a
-  lógica que abre o modal, popula os campos a partir do post e monta a
-  interface dentro dele. O parser do Form Template (`parseFormTemplateBody`)
-  lê o `raw` markdown do primeiro post via Store do Discourse
-  (`store.find("post", id)`) — a calculadora não faz nenhuma chamada HTTP
-  própria (confirmável pela aba Network do DevTools ao abrir o modal); as
-  únicas requisições de rede são as do próprio Discourse e o carregamento dos
-  assets do tema (`regua.json`/`tooltips.json`), que já existiam antes.
-- `javascripts/discourse/regua.json` e `javascripts/discourse/tooltips.json`
-  — os dados da régua de critérios e dos textos de ajuda contextual.
-  Declarados em `about.json` sob `"assets"`, o que faz o Discourse
-  disponibilizá-los por URL própria em runtime (acessível pelo initializer
-  via `settings.theme_uploads.regua` e `settings.theme_uploads.tooltips`).
+  quando o fórum inicializa). Contém os dados da régua de critérios e dos
+  textos de ajuda contextual (embutidos como código JS — não são arquivos
+  enviados por upload, então não dependem de nenhuma configuração de
+  extensões permitidas do site), registra o botão de rodapé do tópico
+  (`api.registerTopicFooterButton`) e contém a lógica que abre o modal,
+  popula os campos a partir do post e monta a interface dentro dele. O
+  parser do Form Template (`parseFormTemplateBody`) lê o `raw` markdown do
+  primeiro post via Store do Discourse (`store.find("post", id)`) — a
+  calculadora não faz nenhuma chamada HTTP própria (confirmável pela aba
+  Network do DevTools ao abrir o modal).
 - `common/common.scss` — o estilo visual da calculadora, escopado sob a
   classe `.matriz-sei-calc` para não vazar para o resto do fórum, mais o
   estilo do overlay do modal (`.matriz-sei-overlay`/`.matriz-sei-dialog`). As
@@ -115,11 +111,13 @@ Em **Admin → Customize → Themes → Matriz SEI → Configurações**, há du
 > 📷 *Screenshot sugerido: a tela de configurações do componente, com os
 > campos `demandas_category_id` e `grupo_autorizado` visíveis.*
 
-- **demandas_category_id**: o ID numérico da categoria do ParticiPEN em que o
-  botão "Abrir na calculadora" deve aparecer. Encontre o ID em
-  `/admin/customize/categories` (aparece na URL da categoria ou no painel de
-  edição dela). Deixe em branco para manter o componente desligado — nesse
-  caso o botão não aparece em nenhuma categoria.
+- **demandas_category_id**: o ID **numérico** da categoria do ParticiPEN em
+  que o botão "Abrir na calculadora" deve aparecer — é um campo numérico no
+  admin, não aceita texto. **Não é o nome nem o slug da categoria** (ex.:
+  não é `melhorias-do-sei`, é o número que aparece na URL dela — em
+  `/c/melhorias-do-sei/42`, o ID é `42`). Confirme em
+  `/admin/customize/categories`. Deixe `0` (padrão) para manter o componente
+  desligado — nesse caso o botão não aparece em nenhuma categoria.
 - **grupo_autorizado**: o nome do grupo do Discourse cujos membros podem ver
   e usar o botão "Abrir na calculadora". Vem pré-configurado como `gpsei`.
 
@@ -138,11 +136,23 @@ Em **Admin → Customize → Themes → Matriz SEI → Configurações**, há du
 
 ## Solução de problemas
 
+**A instalação pede para permitir upload de `.json` ou algo parecido:**
+Isso foi um bug de uma versão anterior (assets `regua.json`/`tooltips.json`
+declarados em `about.json`, tratados como upload e bloqueados pela
+configuração de site `authorized_extensions`). Desde a v1.0.1 esses dados
+estão embutidos no próprio código do tema — não são mais uploads, então esse
+problema não deveria mais acontecer. Se ele voltar a aparecer, você está numa
+versão desatualizada: rode **Update** no theme (ver abaixo) e tente de novo.
+Se você chegou a alterar `authorized_extensions` do site por causa disso numa
+tentativa anterior, pode reverter — não é mais necessário.
+
 **O botão "Abrir na calculadora" não aparece em nenhum tópico:**
 
 1. Confira se `demandas_category_id` está preenchido nas configurações do
-   componente (vem **vazio** por padrão — isso desliga o botão em qualquer
-   categoria, de propósito, até o admin configurar).
+   componente com o **número** da categoria (vem `0` por padrão — isso
+   desliga o botão em qualquer categoria, de propósito, até o admin
+   configurar). É o ID numérico, não o nome nem o slug da categoria — ver
+   "Configurações" acima para como encontrá-lo.
 2. Confira se o tópico em que você está testando é da categoria configurada
    (o ID precisa bater exatamente — confirme em
    `/admin/customize/categories`).
@@ -155,10 +165,10 @@ Em **Admin → Customize → Themes → Matriz SEI → Configurações**, há du
 4. Se você acabou de ser adicionado ao grupo, **recarregue a página**
    (F5) — o navegador só sabe dos seus grupos no momento em que a sessão foi
    carregada.
-5. Abra o Console do navegador (F12 → Console) e recarregue o tópico: o
-   initializer loga `console.info`/`console.warn` explicando por que o botão
-   ficou oculto (categoria errada, usuário sem grupo, grupos do usuário
-   detectados, etc.) — a mensagem já diz qual das condições falhou.
+5. Abra o Console do navegador (F12 → Console) e recarregue o tópico: se o
+   usuário estiver na categoria certa mas fora do grupo, o initializer loga
+   um `console.info`/`console.warn` dizendo exatamente qual grupo falta e
+   quais grupos o usuário tem hoje.
 
 Se depois de checar os itens acima o botão ainda não aparecer com uma
 mensagem de console clara, é sinal de um comportamento inesperado — abra uma
@@ -181,7 +191,7 @@ branch que o ParticiPEN acompanha, normalmente `main`):
 
 ## Roadmap de evolução prevista
 
-Fora de escopo desta versão (v1.0.0), mas já mapeado para o futuro:
+Fora de escopo desta versão, mas já mapeado para o futuro:
 
 - **(a) Publicação automática de reply com a memória de cálculo.** Hoje o
   avaliador copia o Markdown gerado e cola manualmente como resposta no

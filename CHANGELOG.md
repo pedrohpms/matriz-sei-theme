@@ -3,6 +3,30 @@
 Este projeto segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
 e [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.0.1] — 2026-07-01
+
+Correções encontradas na primeira instalação real (ParticiPEN de teste).
+
+### Corrigido
+
+- **Instalação travava pedindo para liberar upload de `.json`.**
+  `regua.json`/`tooltips.json` eram declarados em `about.json` sob
+  `"assets"`, o que faz o Discourse tratá-los como uploads de verdade,
+  sujeitos à configuração de site `authorized_extensions` (que não libera
+  `json` por padrão). Os dados da régua e dos tooltips agora ficam embutidos
+  como código JavaScript dentro do próprio initializer — não são mais
+  uploads, então a instalação não exige nenhuma mudança de configuração do
+  site. `about.json` não declara mais `"assets"`.
+- **Ambiguidade no formato de `demandas_category_id`** (número vs. nome/slug
+  da categoria). A setting mudou de `string` para `type: integer` — o admin
+  agora vê um campo numérico de verdade, e não há mais como digitar um slug
+  por engano. Default mudou de `""` para `0` (mesmo significado: desligado).
+- **Diagnóstico de "botão não aparece"**: a checagem de grupo autorizado
+  agora loga no console do navegador exatamente por que o botão ficou
+  oculto (usuário deslogado, `currentUser.groups` indisponível, ou grupo do
+  usuário não bate com `grupo_autorizado`), e a comparação de nome de grupo
+  passou a ser *case-insensitive*.
+
 ## [1.0.0] — 2026-07-01
 
 Primeiro lançamento estável do theme component.

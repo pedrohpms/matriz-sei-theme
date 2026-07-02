@@ -1,6 +1,7 @@
 demandas_category_id:
-  default: ""
-  description: "ID numérico da categoria em que a calculadora deve aparecer. Encontre o ID em /admin/customize/categories."
+  default: 0
+  type: integer
+  description: "ID NUMÉRICO da categoria em que a calculadora deve aparecer (não o nome nem o slug). Veja em /admin/customize/categories: passe o mouse/clique na categoria e olhe o número no fim da URL — por exemplo, para .../c/melhorias-do-sei/42, o ID é 42. Deixe 0 para manter o componente desligado em todas as categorias."
 grupo_autorizado:
   default: "gpsei"
   description: "Nome do grupo Discourse cujos membros podem usar a calculadora. Deixe em branco para permitir a todos os usuários logados."
