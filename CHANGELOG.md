@@ -32,6 +32,20 @@ ponta bem-sucedido no ParticiPEN.
   falhar (permissão, tópico fechado etc.), o Markdown continua copiado como
   fallback.
 
+### Alterado (visual)
+
+- Cabeçalho: gradiente horizontal fixo `#0e3d88` → `#1351b3` (azul gov.br),
+  em vez da cor de destaque dinâmica do color scheme do Discourse.
+- Botões preenchidos: cor sólida fixa `#1351b3` (a mesma extremidade clara
+  do gradiente do cabeçalho), pelo mesmo motivo. Botões `.secundario`/`.link`
+  continuam acompanhando o color scheme do Discourse.
+- Cor de "alerta" (observações do Passo 4, override de teto, avisos):
+  voltou a ser laranja fixo (`#9a3d00`/`#fff3e8`, a paleta original do
+  protótipo standalone) em vez do `--danger` do Discourse, que é vermelho —
+  mais adequado a erro/ação destrutiva do que a um aviso de atenção.
+- Subtítulo do cabeçalho: removida a marcação "RC1", substituída pela versão
+  do componente (ex.: "v1.1.0").
+
 ## [1.0.1] — 2026-07-01
 
 Correções encontradas na primeira instalação real (ParticiPEN de teste).

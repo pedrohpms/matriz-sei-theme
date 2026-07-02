@@ -3,24 +3,31 @@
 // escopado sob .matriz-sei-calc via aninhamento SCSS para não vazar estilo
 // para o resto do Discourse.
 //
-// Iteração 6 (polimento): as cores deixaram de ser uma paleta própria fixa e
-// passaram a apontar para as variáveis de color scheme do próprio Discourse
-// (--primary, --secondary, --tertiary, --danger, --success, --tertiary-low
-// etc., definidas globalmente pelo core em runtime a partir do scheme ativo).
-// Os nomes semânticos abaixo (--cor-primaria, --cor-texto, ...) continuam
-// existindo — só o valor por trás mudou — para não reescrever cada
-// declaração no resto do arquivo. Resultado prático: se o admin trocar o
-// color scheme do fórum (ou o usuário estiver em dark mode via o scheme
-// "Automático"), a calculadora acompanha automaticamente, sem regra
-// `@media (prefers-color-scheme: dark)` nenhuma — é o Discourse quem já
-// recalcula essas variáveis no :root.
+// Iteração 6 (polimento): a maior parte das cores passou a apontar para as
+// variáveis de color scheme do próprio Discourse (--primary, --secondary,
+// --primary-low etc., definidas globalmente pelo core em runtime a partir
+// do scheme ativo) — fundos, texto e bordas acompanham automaticamente o
+// dark mode, sem regra `@media (prefers-color-scheme: dark)` nenhuma.
 //
-// Duas exceções deliberadas, que ficam hardcoded mesmo:
-//  (a) texto branco (#fff) sobre superfícies pintadas com --cor-primaria
+// Pós-lançamento: por pedido explícito, o azul de marca (cabeçalho e botões
+// preenchidos) e o laranja de alerta voltaram a ser cores FIXAS, não mais
+// derivadas do scheme:
+//  - `--cor-marca-escura`/`--cor-marca-clara`: gradiente horizontal do
+//    cabeçalho (azul gov.br); os botões preenchidos usam só a cor clara
+//    (`--cor-marca-clara`), não o gradiente inteiro. Ficam fixos porque o
+//    texto sobre eles é sempre branco (`#fff`, ver nota (a) abaixo) — não há
+//    dependência de contraste com o scheme, então não há motivo pra variar.
+//  - `--cor-alerta`/`--cor-alerta-fundo`: voltaram a ser o laranja original
+//    do protótipo standalone (`#9a3d00`/`#fff3e8`), porque o `--danger` do
+//    Discourse é vermelho — correto para erro/ação destrutiva, mas as
+//    "observações" e avisos da calculadora (Passo 4, override de teto etc.)
+//    são alertas de atenção, não erros; laranja é o tom certo pro caso de uso
+//    e não existe um token "warning" nativo no Discourse pra mapear.
+//
+// Duas exceções que já eram hardcoded desde antes:
+//  (a) texto branco (#fff) sobre superfícies pintadas com a cor de marca
 //      (cabeçalho, botões, badges) — mesma convenção do próprio Discourse
-//      (o .btn-primary do core também fixa branco sobre --tertiary), porque
-//      no dark scheme --secondary vira escuro e daria baixo contraste se
-//      fosse usado aqui;
+//      (o .btn-primary do core também fixa branco sobre --tertiary);
 //  (b) o anel de foco (--cor-foco), amarelo de alto contraste, é uma escolha
 //      de acessibilidade deliberada e independente do scheme (ver comentário
 //      mais abaixo).
@@ -28,8 +35,11 @@
 // tag <html>); as regras que estavam em `body` (margin, fonte, cor, etc.)
 // viraram propriedades diretas de `.matriz-sei-calc`.
 .matriz-sei-calc {
-  /* Cores: aliases semânticos sobre as variáveis de color scheme do Discourse */
-  --cor-primaria: var(--tertiary);          /* ação/destaque — acompanha o scheme */
+  /* Cores: aliases semânticos — a maioria acompanha o color scheme do
+   * Discourse; marca e alerta são fixos (ver comentário acima). */
+  --cor-primaria: var(--tertiary);          /* ação/destaque não-branding — acompanha o scheme */
+  --cor-marca-escura: #0e3d88;    /* azul gov.br — extremidade esquerda do gradiente do cabeçalho */
+  --cor-marca-clara: #1351b3;     /* azul gov.br — extremidade direita do gradiente; cor dos botões preenchidos */
   --cor-fundo: var(--primary-very-low);     /* fundo "sunken" do container */
   --cor-painel: var(--secondary);           /* fundo dos cartões/painéis internos */
   --cor-texto: var(--primary);
@@ -37,8 +47,8 @@
   --cor-borda: var(--primary-low);
   --cor-ok: var(--success);
   --cor-ok-fundo: var(--success-low);
-  --cor-alerta: var(--danger);
-  --cor-alerta-fundo: var(--danger-low);
+  --cor-alerta: #9a3d00;          /* laranja escuro — fixo, ver comentário acima */
+  --cor-alerta-fundo: #fff3e8;    /* fixo, acompanha --cor-alerta */
   --cor-info-fundo: var(--tertiary-low);
   --cor-foco: #ffcd07;           /* anel de foco amarelo (alto contraste, fixo por design) */
   --raio: 6px;
@@ -66,7 +76,7 @@
 
   /* --- Cabeçalho -------------------------------------------------------- */
   .topo {
-    background: var(--cor-primaria);
+    background: linear-gradient(to right, var(--cor-marca-escura), var(--cor-marca-clara));
     color: #fff; /* branco fixo — ver nota (a) no topo do arquivo */
     padding: 1rem 1.25rem;
   }
@@ -431,13 +441,20 @@
   }
   .feedback { font-size: .95rem; color: var(--cor-ok); font-weight: 600; }
 
-  /* --- Botões ----------------------------------------------------------- */
+  /* --- Botões -------------------------------------------------------------
+   * Cor de marca fixa (--cor-marca-clara), não a --cor-primaria dinâmica —
+   * ver comentário no topo do arquivo. Só os botões preenchidos (o estilo
+   * "principal"); .secundario e .link mantêm --cor-primaria (acompanham o
+   * scheme), porque a cor deles funciona como TEXTO sobre o painel, e uma
+   * marca fixa escura poderia perder contraste se o admin trocar pra um
+   * scheme escuro — o botão preenchido não tem esse risco porque o texto é
+   * sempre branco por cima, contraste garantido nas duas cores da marca. */
   button {
     font: inherit;
     cursor: pointer;
     padding: .55rem 1.1rem;
-    border: 1px solid var(--cor-primaria);
-    background: var(--cor-primaria);
+    border: 1px solid var(--cor-marca-clara);
+    background: var(--cor-marca-clara);
     color: #fff; /* branco fixo — ver nota (a) no topo do arquivo */
     border-radius: var(--raio);
     font-weight: 600;

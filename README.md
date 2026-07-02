@@ -44,10 +44,11 @@ publica automaticamente como reply no próprio tópico, em nome do avaliador
 logado. Os botões "Copiar markdown" (só copia) e "Baixar JSON" continuam
 disponíveis como alternativa.
 
-A aparência da calculadora acompanha o color scheme ativo do fórum
-(claro/escuro) automaticamente — inclusive o modo escuro, se o ParticiPEN
-tiver um scheme escuro configurado — porque as cores usam as variáveis de
-tema do próprio Discourse, não uma paleta fixa.
+Fundos, texto e bordas acompanham o color scheme ativo do fórum (claro/
+escuro) automaticamente, porque usam as variáveis de tema do próprio
+Discourse. O azul do cabeçalho/botões (gov.br) e o laranja dos avisos são
+cores fixas, de propósito — identidade visual da GPSEI, independente do
+scheme.
 
 O código da calculadora vem do protótipo standalone
 [pedrohpms/matriz-sei](https://github.com/pedrohpms/matriz-sei).
@@ -68,10 +69,11 @@ O código da calculadora vem do protótipo standalone
   Network do DevTools ao abrir o modal).
 - `common/common.scss` — o estilo visual da calculadora, escopado sob a
   classe `.matriz-sei-calc` para não vazar para o resto do fórum, mais o
-  estilo do overlay do modal (`.matriz-sei-overlay`/`.matriz-sei-dialog`). As
-  cores usam as variáveis de color scheme do Discourse (`--primary`,
-  `--secondary`, `--tertiary`, `--danger`, `--success` etc.), então seguem o
-  scheme ativo do fórum, incluindo dark mode.
+  estilo do overlay do modal (`.matriz-sei-overlay`/`.matriz-sei-dialog`).
+  Fundos, texto e bordas usam as variáveis de color scheme do Discourse
+  (`--primary`, `--secondary`, `--primary-low` etc.), então seguem o scheme
+  ativo do fórum, incluindo dark mode. O azul do cabeçalho/botões e o
+  laranja dos avisos são cores fixas (identidade visual da GPSEI).
 - `common/head_tag.html` — o HTML da calculadora, dentro de um
   `<template id="matriz-sei-calc-template">`. Ao clicar no botão de rodapé,
   o initializer clona esse template para dentro de um modal próprio (overlay
