@@ -136,6 +136,34 @@ Em **Admin → Customize → Themes → Matriz SEI → Configurações**, há du
   As duas condições — categoria certa e grupo certo — precisam valer ao
   mesmo tempo para o botão aparecer.
 
+## Solução de problemas
+
+**O botão "Abrir na calculadora" não aparece em nenhum tópico:**
+
+1. Confira se `demandas_category_id` está preenchido nas configurações do
+   componente (vem **vazio** por padrão — isso desliga o botão em qualquer
+   categoria, de propósito, até o admin configurar).
+2. Confira se o tópico em que você está testando é da categoria configurada
+   (o ID precisa bater exatamente — confirme em
+   `/admin/customize/categories`).
+3. Confira se você está logado com um usuário que pertence ao grupo
+   configurado em `grupo_autorizado` (vem pré-configurado como `gpsei`). Se
+   o grupo `gpsei` ainda não existir no seu ParticiPEN, crie-o em
+   **Admin → Users → Groups** e adicione o usuário de teste como membro —
+   **ou** esvazie `grupo_autorizado` para liberar o botão a qualquer usuário
+   logado, sem exigir grupo.
+4. Se você acabou de ser adicionado ao grupo, **recarregue a página**
+   (F5) — o navegador só sabe dos seus grupos no momento em que a sessão foi
+   carregada.
+5. Abra o Console do navegador (F12 → Console) e recarregue o tópico: o
+   initializer loga `console.info`/`console.warn` explicando por que o botão
+   ficou oculto (categoria errada, usuário sem grupo, grupos do usuário
+   detectados, etc.) — a mensagem já diz qual das condições falhou.
+
+Se depois de checar os itens acima o botão ainda não aparecer com uma
+mensagem de console clara, é sinal de um comportamento inesperado — abra uma
+issue no repositório com o texto exato do console.
+
 ## Atualizando o theme
 
 Quando houver uma nova versão publicada no repositório (`git push` numa

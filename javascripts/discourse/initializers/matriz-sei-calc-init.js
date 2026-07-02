@@ -1734,14 +1734,38 @@ ${corpoFinal}
       // settings.grupo_autorizado. Setting vazio = sem restrição de grupo
       // (true). currentUser ausente ou sem grupos = nunca autorizado quando
       // a restrição está ativa.
+      // Comparação de nome de grupo é case-insensitive (Discourse aceita
+      // grupos com maiúsculas no nome, ex.: "GPSEI" — não vale a pena travar
+      // o botão por causa de diferença de caixa entre a setting e o grupo real).
       function usuarioNoGrupoAutorizado() {
-        const nomeGrupo = (settings.grupo_autorizado || "").toString().trim();
+        const nomeGrupo = (settings.grupo_autorizado || "").toString().trim().toLowerCase();
         if (!nomeGrupo) return true; // sem restrição de grupo
 
         const currentUser = api.getCurrentUser();
-        if (!currentUser || !currentUser.groups) return false;
+        if (!currentUser) {
+          console.warn("Matriz SEI calc: botão oculto — sem currentUser (não logado?).");
+          return false;
+        }
+        if (!currentUser.groups) {
+          console.warn(
+            "Matriz SEI calc: botão oculto — currentUser.groups não está "
+            + "populado nesta versão do Discourse. Veja o README (Solução de "
+            + "problemas) para um teste manual.",
+          );
+          return false;
+        }
 
-        return currentUser.groups.some((g) => g && g.name === nomeGrupo);
+        const membro = currentUser.groups.some(
+          (g) => g && (g.name || "").toString().trim().toLowerCase() === nomeGrupo,
+        );
+        if (!membro) {
+          console.info(
+            `Matriz SEI calc: botão oculto — usuário "${currentUser.username}" `
+            + `não pertence ao grupo "${settings.grupo_autorizado}". Grupos do `
+            + `usuário: ${currentUser.groups.map((g) => g && g.name).join(", ") || "(nenhum)"}.`,
+          );
+        }
+        return membro;
       }
 
       api.registerTopicFooterButton({
@@ -1757,7 +1781,9 @@ ${corpoFinal}
           if (!bruto) return false; // modo desligado
           const catId = parseInt(bruto, 10);
           if (Number.isNaN(catId)) return false;
-          if (this.topic.category_id !== catId) return false;
+          if (this.topic.category_id !== catId) {
+            return false; // tópico fora da categoria configurada — comportamento esperado
+          }
           return usuarioNoGrupoAutorizado();
         },
       });
