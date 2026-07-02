@@ -21,10 +21,10 @@ e são responsáveis por triar e priorizar as demandas do SEI. Não é necessár
 conhecimento técnico para usar — instalar o componente é uma operação de
 poucos cliques feita pelo painel administrativo do Discourse.
 
-## O que ele faz (v1.1.0)
+## O que ele faz (v1.1.1)
 
-Nos tópicos da categoria configurada, aparece um botão **"Abrir na
-calculadora"** no rodapé do tópico — visível só para quem está logado **e**
+Nos tópicos da categoria configurada, aparece um botão **"Avaliar"** no
+rodapé do tópico — visível só para quem está logado **e**
 é membro do grupo autorizado (por padrão, `gpsei`). Clicar nele abre a
 calculadora num modal, sempre no Passo 1 (Identificação), com três campos já
 pré-preenchidos para o avaliador conferir: **avaliador** (nome de quem
@@ -123,14 +123,14 @@ Em **Admin → Customize → Themes → Matriz SEI → Configurações**, há du
 > campos `demandas_category_id` e `grupo_autorizado` visíveis.*
 
 - **demandas_category_id**: o ID **numérico** da categoria do ParticiPEN em
-  que o botão "Abrir na calculadora" deve aparecer — é um campo numérico no
+  que o botão "Avaliar" deve aparecer — é um campo numérico no
   admin, não aceita texto. **Não é o nome nem o slug da categoria** (ex.:
   não é `melhorias-do-sei`, é o número que aparece na URL dela — em
   `/c/melhorias-do-sei/42`, o ID é `42`). Confirme em
   `/admin/customize/categories`. Deixe `0` (padrão) para manter o componente
   desligado — nesse caso o botão não aparece em nenhuma categoria.
 - **grupo_autorizado**: o nome do grupo do Discourse cujos membros podem ver
-  e usar o botão "Abrir na calculadora". Vem pré-configurado como `gpsei`.
+  e usar o botão "Avaliar". Vem pré-configurado como `gpsei`.
 
   Para usar a restrição padrão, crie um grupo chamado **gpsei** em
   **Admin → Users → Groups** e adicione como membros os avaliadores da
@@ -157,7 +157,7 @@ versão desatualizada: rode **Update** no theme (ver abaixo) e tente de novo.
 Se você chegou a alterar `authorized_extensions` do site por causa disso numa
 tentativa anterior, pode reverter — não é mais necessário.
 
-**O botão "Abrir na calculadora" não aparece em nenhum tópico:**
+**O botão "Avaliar" não aparece em nenhum tópico:**
 
 1. Confira se `demandas_category_id` está preenchido nas configurações do
    componente com o **número** da categoria (vem `0` por padrão — isso
@@ -191,6 +191,14 @@ reply). A publicação automática pode falhar por falta de permissão do
 avaliador para postar naquela categoria/tópico (ex.: tópico fechado, categoria
 restrita), ou por algum outro erro do lado do Discourse — o console mostra o
 motivo (`Matriz SEI calc: falha ao publicar a resposta`).
+
+**O botão "Avaliar" aparece sem ícone (só o texto):** o
+Discourse só compila no site o subconjunto de ícones do FontAwesome
+efetivamente usado — ícones "incomuns" como `calculator`, referenciados só
+por um tema, podem ficar de fora por padrão. Vá em **Admin → Settings**,
+busque por "icon" e encontre a configuração **svg icon subset**; adicione
+`calculator` à lista (sem remover os ícones que já estão lá) e salve. Depois
+de salvar, recarregue a página do tópico.
 
 ## Atualizando o theme
 

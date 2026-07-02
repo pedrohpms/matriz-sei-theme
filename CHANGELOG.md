@@ -3,6 +3,19 @@
 Este projeto segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
 e [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.1.1] — 2026-07-01
+
+### Documentado
+
+- O botão "Abrir na calculadora" pode aparecer sem ícone: o Discourse só
+  compila no site o subconjunto de ícones do FontAwesome efetivamente
+  usado, e `calculator` (por ser pouco comum) pode ficar de fora por
+  padrão. README ("Solução de problemas") agora documenta o caminho de
+  correção: Admin → Settings → busca "icon" → configuração **svg icon
+  subset** → adicionar `calculator` à lista. Confirmado como solução por
+  teste real no ParticiPEN. Não é um bug de código — nenhuma mudança em
+  `about.json`/JS foi necessária.
+
 ## [1.1.0] — 2026-07-01
 
 Ajustes de fluxo e nova funcionalidade a partir do primeiro teste ponta a

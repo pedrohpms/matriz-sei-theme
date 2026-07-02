@@ -38,7 +38,7 @@ export default {
       ];
 
       // Corretiva é tratada via Central de Atendimento, fora desta calculadora.
-      const TRILHAS = ["Melhoria", "Evolutiva", "Normativa"];
+      const TRILHAS = ["Aperfeiçoamento", "Evolutiva", "Normativa"];
 
       // Camadas em ordem crescente de complexidade/abrangência.
       const CAMADAS = [
@@ -726,7 +726,7 @@ export default {
         "Uma prática em uso, a difundir": "pratica",
       };
       const TRAD_TRILHA = {
-        "Quero melhorar algo que já existe, mas pode ficar melhor": "Melhoria",
+        "Quero melhorar algo que já existe, mas pode ficar melhor": "Aperfeiçoamento",
         "Quero acrescentar uma funcionalidade que ainda não existe no SEI": "Evolutiva",
         "Quero mudar uma regra, um padrão ou uma orientação de como o SEI deve ser usado": "Normativa",
       };
@@ -1800,7 +1800,7 @@ ${corpoFinal}
       // em qual tópico publicar a resposta.
       let topicoAtual = null;
 
-      // Handler do botão de rodapé "Abrir na calculadora". Abre o overlay,
+      // Handler do botão de rodapé "Avaliar". Abre o overlay,
       // monta a interface e popula os campos a partir do raw markdown do
       // primeiro post do tópico — via Store do Discourse, sem nenhuma
       // chamada de rede própria da calculadora (fetch à API pública foi
