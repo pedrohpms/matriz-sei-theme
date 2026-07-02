@@ -1334,22 +1334,74 @@ ${corpoFinal}
         setTimeout(() => { feedback.textContent = ""; }, ms);
       }
 
+      // Copia um texto para a área de transferência. Lança se falhar (quem
+      // chama decide a mensagem — copiarMarkdown() e postarAvaliacao() usam
+      // textos diferentes para o mesmo caso de falha).
+      async function copiarTextoParaClipboard(texto) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(texto);
+        } else {
+          // Fallback para contextos sem Clipboard API
+          const ta = $("#memoria-saida");
+          ta.focus();
+          ta.select();
+          document.execCommand("copy");
+        }
+      }
+
       async function copiarMarkdown() {
         if (!memoriaAtual) gerarMemoria();
         const texto = $("#memoria-saida").value;
         try {
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            await navigator.clipboard.writeText(texto);
-          } else {
-            // Fallback para contextos sem Clipboard API
-            const ta = $("#memoria-saida");
-            ta.focus();
-            ta.select();
-            document.execCommand("copy");
-          }
+          await copiarTextoParaClipboard(texto);
           flash("Markdown copiado!");
         } catch (e) {
           flash("Não foi possível copiar automaticamente — selecione e copie manualmente.");
+        }
+      }
+
+      // Botão "Postar avaliação": copia o markdown (mesmo comportamento do
+      // botão "Copiar markdown") E publica a memória de cálculo como reply
+      // no próprio tópico, via Store do Discourse (store.createRecord("post",
+      // ...).save() — o mesmo mecanismo que a Composer do Discourse usa por
+      // baixo dos panos para criar posts). O post sai em nome do usuário
+      // logado (quem clicou no botão), como qualquer reply normal.
+      async function postarAvaliacao() {
+        if (!topicoAtual || !topicoAtual.id) {
+          flash("Não foi possível identificar o tópico para publicar a resposta.");
+          return;
+        }
+
+        if (!memoriaAtual) gerarMemoria();
+        const texto = $("#memoria-saida").value;
+
+        try {
+          await copiarTextoParaClipboard(texto);
+        } catch (e) {
+          // Falha ao copiar não impede a publicação — segue o fluxo.
+        }
+
+        const btn = $("#btn-postar-avaliacao");
+        if (btn) btn.disabled = true;
+        flash("Publicando resposta…", 10000);
+
+        try {
+          const store = api.container.lookup("service:store");
+          const post = store.createRecord("post", {
+            raw: texto,
+            topic_id: topicoAtual.id,
+          });
+          await post.save();
+          flash("Markdown copiado e resposta publicada no tópico!", 5000);
+        } catch (erro) {
+          console.error("Matriz SEI calc: falha ao publicar a resposta —", erro && erro.message);
+          flash(
+            "Markdown copiado, mas não foi possível publicar a resposta "
+            + "automaticamente — cole manualmente como reply.",
+            7000,
+          );
+        } finally {
+          if (btn) btn.disabled = false;
         }
       }
 
@@ -1468,6 +1520,7 @@ ${corpoFinal}
         });
 
         // Passo 6 — saídas
+        $("#btn-postar-avaliacao").addEventListener("click", postarAvaliacao);
         $("#btn-copiar-md").addEventListener("click", copiarMarkdown);
         $("#btn-baixar-json").addEventListener("click", baixarJSON);
         $("#btn-regenerar").addEventListener("click", () => { gerarMemoria(); atualizarDesfechoMemoria(); });
@@ -1742,6 +1795,11 @@ ${corpoFinal}
         return dialog.querySelector(".matriz-sei-calc");
       }
 
+      // Tópico atualmente aberto na calculadora — preenchido em
+      // abrirCalculadoraParaTopico(), lido por postarAvaliacao() para saber
+      // em qual tópico publicar a resposta.
+      let topicoAtual = null;
+
       // Handler do botão de rodapé "Abrir na calculadora". Abre o overlay,
       // monta a interface e popula os campos a partir do raw markdown do
       // primeiro post do tópico — via Store do Discourse, sem nenhuma
@@ -1753,9 +1811,26 @@ ${corpoFinal}
         const raiz = criarOverlayComCalculadora();
         if (!raiz) return;
 
+        topicoAtual = topic;
+
         // Dados-base (régua/tooltips) são embutidos e já foram carregados de
         // forma síncrona na inicialização — sem fetch, sem promise a esperar.
         montarInterface();
+
+        const urlTopico = topic && topic.url ? `${window.location.origin}${topic.url}` : "";
+
+        // Avaliador (usuário logado que clicou no botão) e link público (URL
+        // do próprio tópico) não dependem do parser do Form Template —
+        // preenchidos direto do contexto, sempre que disponíveis.
+        const currentUser = api.getCurrentUser();
+        estado.identificacao.avaliador = currentUser
+          ? (currentUser.name || currentUser.username || "")
+          : "";
+        estado.identificacao.link = urlTopico;
+        const elAvaliador = $("#id-avaliador");
+        if (elAvaliador) elAvaliador.value = estado.identificacao.avaliador;
+        const elLink = $("#id-link");
+        if (elLink) elLink.value = estado.identificacao.link;
 
         // store.find("post", id) devolve o post via Store interna do
         // Discourse (mesmo objeto que o resto do app usa) — não é uma
@@ -1781,16 +1856,12 @@ ${corpoFinal}
         const campos = raw
           ? parseFormTemplateBody(raw, topic && topic.title)
           : { semCabecalhos: true, ausentes: [], naoReconhecidos: [], encontrados: [], temAnexos: false };
-        const urlTopico = topic && topic.url ? `${window.location.origin}${topic.url}` : "";
         aplicarCamposDoTopico(campos, urlTopico);
 
-        // Só pula direto para a Triagem (Passo 2) se os campos centrais da
-        // Identificação vieram todos preenchidos; qualquer lacuna manda para
-        // a Identificação (Passo 1) para completar à mão — o fallback manual
-        // do Patch 4 continua disponível ali.
-        const camposCentrais = ["titulo", "natureza", "trilha", "camada"];
-        const tudoPreenchido = camposCentrais.every((c) => estado.identificacao[c]);
-        mostrarPasso(tudoPreenchido ? 1 : 0);
+        // Sempre abre na Identificação (Passo 1) — mesmo quando o parser
+        // populou tudo — para o avaliador validar os dados extraídos antes
+        // de seguir para a triagem.
+        mostrarPasso(0);
       }
 
       /* ---------------------------------------------------------------- *
@@ -1844,8 +1915,14 @@ ${corpoFinal}
       api.registerTopicFooterButton({
         id: "matriz-sei-open",
         icon: "calculator",
-        label: "topic.matriz_sei.open_button",
-        title: "topic.matriz_sei.open_button_title",
+        // ADAPTAÇÃO: chaves de locales/pt_BR.yml não ficam disponíveis no
+        // namespace global do I18n (por isso o botão mostrava o texto cru
+        // "[pt_BR.topic.matriz_sei.open_button]" em vez do rótulo) — o
+        // Discourse compila traduções de tema sob um namespace próprio,
+        // acessível só via themePrefix(chave) (global injetado pelo
+        // Discourse no JS de temas, sem precisar de import).
+        label: themePrefix("topic.matriz_sei.open_button"),
+        title: themePrefix("topic.matriz_sei.open_button_title"),
         action() {
           abrirCalculadoraParaTopico(this.topic);
         },

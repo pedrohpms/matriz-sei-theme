@@ -21,21 +21,28 @@ e são responsáveis por triar e priorizar as demandas do SEI. Não é necessár
 conhecimento técnico para usar — instalar o componente é uma operação de
 poucos cliques feita pelo painel administrativo do Discourse.
 
-## O que ele faz (v1.0.1)
+## O que ele faz (v1.1.0)
 
 Nos tópicos da categoria configurada, aparece um botão **"Abrir na
 calculadora"** no rodapé do tópico — visível só para quem está logado **e**
 é membro do grupo autorizado (por padrão, `gpsei`). Clicar nele abre a
-calculadora num modal e já preenche os campos automaticamente a partir do
-primeiro post do tópico, se ele seguir o Form Template do ParticiPEN — sem
-nenhuma chamada de rede própria da calculadora: o post é lido pela mesma
-Store interna que o resto do Discourse usa. Se o post não estiver nesse
-formato, os campos ficam em branco para preenchimento manual.
+calculadora num modal, sempre no Passo 1 (Identificação), com três campos já
+pré-preenchidos para o avaliador conferir: **avaliador** (nome de quem
+clicou no botão), **link público** (URL do próprio tópico) e os campos de
+identificação da demanda, extraídos automaticamente do primeiro post do
+tópico se ele seguir o Form Template do ParticiPEN — sem nenhuma chamada de
+rede própria da calculadora: o post é lido pela mesma Store interna que o
+resto do Discourse usa. Se o post não estiver nesse formato, os campos de
+identificação ficam em branco para preenchimento manual (avaliador e link
+continuam preenchidos).
 
-O avaliador percorre os seis passos (identificação, triagem, curadoria de
-camada, pontuação, filtros automáticos, memória de cálculo), pontua a
-demanda e copia a memória de cálculo gerada em Markdown (botão "Copiar
-markdown") para colar manualmente como reply no tópico.
+O avaliador confere/completa os dados e percorre os seis passos
+(identificação, triagem, curadoria de camada, pontuação, filtros
+automáticos, memória de cálculo). No Passo 6, o botão **"Postar avaliação"**
+copia a memória de cálculo em Markdown para a área de transferência **e**
+publica automaticamente como reply no próprio tópico, em nome do avaliador
+logado. Os botões "Copiar markdown" (só copia) e "Baixar JSON" continuam
+disponíveis como alternativa.
 
 A aparência da calculadora acompanha o color scheme ativo do fórum
 (claro/escuro) automaticamente — inclusive o modo escuro, se o ParticiPEN
@@ -72,7 +79,9 @@ O código da calculadora vem do protótipo standalone
   de 768px o modal ocupa a tela inteira).
 - `settings.yml` — as configurações `demandas_category_id` e
   `grupo_autorizado` (ver "Configurações" abaixo).
-- `locales/pt_BR.yml` — os textos do botão de rodapé.
+- `locales/pt_BR.yml` — os textos do botão de rodapé, acessados via
+  `themePrefix("topic.matriz_sei.open_button")` (não pela chave crua —
+  traduções de tema do Discourse vivem num namespace próprio).
 
 ## Como instalar
 
@@ -174,6 +183,13 @@ Se depois de checar os itens acima o botão ainda não aparecer com uma
 mensagem de console clara, é sinal de um comportamento inesperado — abra uma
 issue no repositório com o texto exato do console.
 
+**O botão "Postar avaliação" não publica a resposta:** o Markdown já foi
+copiado para a área de transferência mesmo assim (cole manualmente como
+reply). A publicação automática pode falhar por falta de permissão do
+avaliador para postar naquela categoria/tópico (ex.: tópico fechado, categoria
+restrita), ou por algum outro erro do lado do Discourse — o console mostra o
+motivo (`Matriz SEI calc: falha ao publicar a resposta`).
+
 ## Atualizando o theme
 
 Quando houver uma nova versão publicada no repositório (`git push` numa
@@ -193,17 +209,16 @@ branch que o ParticiPEN acompanha, normalmente `main`):
 
 Fora de escopo desta versão, mas já mapeado para o futuro:
 
-- **(a) Publicação automática de reply com a memória de cálculo.** Hoje o
-  avaliador copia o Markdown gerado e cola manualmente como resposta no
-  tópico; a ideia é publicar isso automaticamente via API de posts do
-  Discourse, com um clique.
-- **(b) Filtros e busca por demandas já pontuadas.** Uma visão que liste ou
+- **Filtros e busca por demandas já pontuadas.** Uma visão que liste ou
   filtre tópicos que já passaram pela calculadora (por score, camada,
   desfecho etc.), hoje inexistente — cada memória de cálculo vive isolada no
   reply do seu próprio tópico.
-- **(c) Exportação da ata para PDF.** Gerar um PDF consolidado de uma reunião
+- **Exportação da ata para PDF.** Gerar um PDF consolidado de uma reunião
   de priorização (várias memórias de cálculo juntas), para arquivamento ou
   distribuição fora do Discourse.
+
+~~Publicação automática de reply com a memória de cálculo~~ — entregue na
+v1.1.0 (botão "Postar avaliação").
 
 ## Governança do SEI
 

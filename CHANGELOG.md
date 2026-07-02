@@ -3,6 +3,35 @@
 Este projeto segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
 e [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.1.0] — 2026-07-01
+
+Ajustes de fluxo e nova funcionalidade a partir do primeiro teste ponta a
+ponta bem-sucedido no ParticiPEN.
+
+### Corrigido
+
+- Botão de rodapé mostrava a chave crua de tradução
+  (`[pt_BR.topic.matriz_sei.open_button]`) em vez do rótulo — traduções de
+  tema do Discourse não ficam no namespace global do I18n; precisam de
+  `themePrefix(chave)`. `label`/`title` do `registerTopicFooterButton`
+  corrigidos.
+- O modal sempre abre no Passo 1 (Identificação) agora, mesmo quando o
+  parser do Form Template consegue preencher tudo — antes pulava direto
+  para o Passo 2 (Triagem), sem dar chance de o avaliador conferir os dados
+  extraídos.
+
+### Adicionado
+
+- Campo **Avaliador** é pré-preenchido com o nome do usuário logado que
+  clicou no botão.
+- Campo **Link público** é pré-preenchido com a URL do próprio tópico.
+- Botão **"Postar avaliação"** no Passo 6 (antes de "Copiar markdown"):
+  copia a memória de cálculo para a área de transferência **e** publica
+  automaticamente como reply no tópico, em nome do avaliador logado
+  (`store.createRecord("post", { raw, topic_id }).save()`). Se a publicação
+  falhar (permissão, tópico fechado etc.), o Markdown continua copiado como
+  fallback.
+
 ## [1.0.1] — 2026-07-01
 
 Correções encontradas na primeira instalação real (ParticiPEN de teste).
