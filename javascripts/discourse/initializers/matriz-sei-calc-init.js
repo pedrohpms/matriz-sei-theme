@@ -18,6 +18,7 @@
  */
 
 import { withPluginApi } from "discourse/lib/plugin-api";
+import { ajax } from "discourse/lib/ajax";
 
 export default {
   name: "matriz-sei-calc-init",
@@ -1382,6 +1383,44 @@ export default {
           + `</svg>`;
       }
 
+      // Rasteriza o SVG da plotagem (string) em PNG (Blob) via canvas. O
+      // Discourse não renderiza SVG inline num post — mostra o código cru; por
+      // isso a plotagem vai ao reply como PNG. Fundo branco (o SVG é
+      // transparente fora dos quadrantes) e escala 2x para nitidez. Resolve com
+      // { blob, largura, altura }. O SVG é self-contained (sem recursos
+      // externos), então o canvas não fica "tainted" e toBlob funciona.
+      function svgParaPngBlob(svgString, escala = 2) {
+        return new Promise((resolve, reject) => {
+          const vb = svgString.match(/viewBox="0 0 (\d+(?:\.\d+)?) (\d+(?:\.\d+)?)"/);
+          const w = vb ? Math.round(Number(vb[1])) : 600;
+          const h = vb ? Math.round(Number(vb[2])) : 400;
+          // width/height explícitos: um SVG só com viewBox pode carregar com
+          // tamanho intrínseco 0 numa <img>, e o canvas desenharia vazio.
+          const svgDim = svgString.replace("<svg ", `<svg width="${w}" height="${h}" `);
+          const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgDim);
+          const img = new Image();
+          img.onload = () => {
+            try {
+              const canvas = document.createElement("canvas");
+              canvas.width = w * escala;
+              canvas.height = h * escala;
+              const ctx = canvas.getContext("2d");
+              ctx.fillStyle = "#ffffff";
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
+              ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+              canvas.toBlob(
+                (blob) => (blob ? resolve({ blob, largura: w, altura: h }) : reject(new Error("canvas.toBlob vazio"))),
+                "image/png",
+              );
+            } catch (e) {
+              reject(e);
+            }
+          };
+          img.onerror = () => reject(new Error("falha ao carregar o SVG como imagem"));
+          img.src = url;
+        });
+      }
+
       // Markdown estruturado, para colar no Discourse/ParticiPEN.
       function memoriaParaMarkdown(m) {
         const ni = (v) => (v && String(v).trim() ? v : "(não informado)");
@@ -1455,10 +1494,11 @@ ${rodapeMeta}`;
           const overrideLinha = m.override_complexidade
             ? `\n- **Override do piso de complexidade:** ${m.override_complexidade}`
             : "";
-          const svg = svgPlotagemString(m);
-          const plotagem = svg
-            ? `\n\n## Plotagem em quadrantes\n<!-- svg-plotagem -->\n\`\`\`xml\n${svg}\n\`\`\`\n`
-              + `_Linhas de corte: valor ≥ ${CORTES.valor} alto, esforço ≥ ${CORTES.esforco} alto (convenção revisável)._`
+          // A plotagem NÃO entra como SVG aqui: o Discourse mostraria o código
+          // cru numa caixa. A imagem (PNG) é anexada ao publicar (ver
+          // postarAvaliacao); localmente há os botões "Baixar como PNG/SVG".
+          const plotagem = m.quadrante
+            ? `\n\n_Plotagem: quadrante ${m.quadrante.rotulo} (linhas de corte valor ≥ ${CORTES.valor}, esforço ≥ ${CORTES.esforco}). Imagem anexada no reply publicado; nas exportações locais, use "Baixar como PNG/SVG"._`
             : "";
           corpoFinal = `## Critérios
 
@@ -1614,26 +1654,39 @@ ${corpoFinal}
         }
 
         if (!memoriaAtual) gerarMemoria();
-        const texto = $("#memoria-saida").value;
+        const base = $("#memoria-saida").value;
 
+        // Copia só o texto-base (a referência upload:// da imagem só resolve
+        // dentro do post, não serve para colar em outro lugar).
         try {
-          await copiarTextoParaClipboard(texto);
+          await copiarTextoParaClipboard(base);
         } catch (e) {
           // Falha ao copiar não impede a publicação — segue o fluxo.
         }
 
         const btn = $("#btn-postar-avaliacao");
         if (btn) btn.disabled = true;
-        flash("Publicando resposta…", 10000);
+        flash("Publicando resposta…", 15000);
 
         try {
+          // Best-effort: sobe a plotagem como PNG e embute a imagem no reply.
+          // Se falhar (ou for ato vinculado), imgMd = "" e a resposta sai sem
+          // a imagem — publicação nunca é bloqueada por isso.
+          const imgMd = await markdownImagemPlotagem(memoriaAtual);
+          const raw = base + imgMd;
+
           const store = api.container.lookup("service:store");
           const post = store.createRecord("post", {
-            raw: texto,
+            raw,
             topic_id: topicoAtual.id,
           });
           await post.save();
-          flash("Markdown copiado e resposta publicada no tópico!", 5000);
+          flash(
+            imgMd
+              ? "Resposta publicada no tópico com a plotagem!"
+              : "Resposta publicada no tópico!",
+            5000,
+          );
         } catch (erro) {
           console.error("Matriz SEI calc: falha ao publicar a resposta —", erro && erro.message);
           flash(
@@ -1682,6 +1735,64 @@ ${corpoFinal}
         a.remove();
         URL.revokeObjectURL(url);
         flash("SVG baixado: " + nome, 4000);
+      }
+
+      // Exporta a plotagem como PNG (rasterizado do SVG), nome pelo título.
+      async function baixarPNG() {
+        if (!memoriaAtual) gerarMemoria();
+        if (memoriaAtual.desfecho.codigo === "piso") {
+          flash("Ato vinculado não tem posição na matriz — sem plotagem para exportar.", 4000);
+          return;
+        }
+        try {
+          const { blob } = await svgParaPngBlob(svgPlotagemString(memoriaAtual));
+          const nome = `plotagem-${slugify(memoriaAtual.identificacao.titulo)}.png`;
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = nome;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+          flash("PNG baixado: " + nome, 4000);
+        } catch (e) {
+          console.error("Matriz SEI calc: falha ao gerar o PNG —", e && e.message);
+          flash("Não foi possível gerar o PNG da plotagem.", 4000);
+        }
+      }
+
+      // Best-effort: rasteriza a plotagem em PNG, sobe como upload do Discourse
+      // (POST /uploads.json, síncrono) e devolve a markdown de imagem
+      // (![...](upload://...)) para embutir no reply. Devolve "" se não houver
+      // plotagem (ato vinculado) ou se qualquer etapa falhar — NUNCA lança, para
+      // não impedir a publicação da resposta. O endpoint de upload varia com a
+      // config do fórum (armazenamento local × S3); no pior caso o reply sai sem
+      // a imagem e o avaliador anexa o PNG baixado manualmente.
+      async function markdownImagemPlotagem(m) {
+        if (!m || m.desfecho.codigo === "piso") return "";
+        try {
+          const svg = svgPlotagemString(m);
+          if (!svg) return "";
+          const { blob, largura, altura } = await svgParaPngBlob(svg);
+          const nome = `plotagem-${slugify(m.identificacao.titulo)}.png`;
+          const fd = new FormData();
+          fd.append("type", "composer");
+          fd.append("synchronous", "true");
+          fd.append("file", blob, nome);
+          const up = await ajax("/uploads.json", {
+            type: "POST",
+            data: fd,
+            processData: false,
+            contentType: false,
+          });
+          const ref = up && (up.short_url || up.url);
+          if (!ref) return "";
+          return `\n\n## Plotagem em quadrantes\n![Plotagem valor × esforço|${largura}x${altura}](${ref})`;
+        } catch (erro) {
+          console.warn("Matriz SEI calc: falha ao subir o PNG da plotagem —", erro && erro.message);
+          return "";
+        }
       }
 
       /* ---------------------------------------------------------------- *
@@ -1785,6 +1896,7 @@ ${corpoFinal}
         $("#btn-postar-avaliacao").addEventListener("click", postarAvaliacao);
         $("#btn-copiar-md").addEventListener("click", copiarMarkdown);
         $("#btn-baixar-json").addEventListener("click", baixarJSON);
+        $("#btn-baixar-png").addEventListener("click", baixarPNG);
         $("#btn-baixar-svg").addEventListener("click", baixarSVG);
         $("#btn-regenerar").addEventListener("click", () => { gerarMemoria(); atualizarDesfechoMemoria(); });
       }
