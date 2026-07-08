@@ -3,6 +3,28 @@
 Este projeto segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
 e [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.2.1] — 2026-07-08
+
+### Corrigido
+
+- **Plotagem no reply agora vai como imagem PNG, não como código.** A v1.2.0
+  embutia o SVG da plotagem num bloco ` ```xml ` — o Discourse não renderiza
+  SVG inline num post, então o reply mostrava o **código-fonte do SVG numa
+  caixa de código** em vez do gráfico. Agora, ao **Postar avaliação**, a
+  calculadora rasteriza o SVG em **PNG** (via canvas), faz upload
+  (`POST /uploads.json`) e embute a imagem (`![…](upload://…)`) no reply.
+  Best-effort com fallback: se o upload falhar (ex.: config de armazenamento
+  do fórum), a resposta é publicada **sem** a imagem (nunca mais a caixa de
+  código) e o avaliador pode anexar o PNG baixado.
+- A memória de cálculo em Markdown (textarea / "Copiar markdown") deixou de
+  carregar o SVG serializado; no lugar, uma nota curta com o quadrante e as
+  linhas de corte.
+
+### Adicionado
+
+- Botão **"Baixar como PNG"** (ao lado de "Baixar como SVG"), para salvar ou
+  anexar a plotagem manualmente.
+
 ## [1.2.0] — 2026-07-07
 
 Migração do **Patch 5** do protótipo standalone (`pedrohpms/matriz-sei`): a

@@ -24,7 +24,7 @@ e são responsáveis por triar e priorizar as demandas do SEI. Não é necessár
 conhecimento técnico para usar — instalar o componente é uma operação de
 poucos cliques feita pelo painel administrativo do Discourse.
 
-## O que ele faz (v1.2.0)
+## O que ele faz (v1.2.1)
 
 Nos tópicos da categoria configurada, aparece um botão **"Avaliar"** no
 rodapé do tópico — visível só para quem está logado **e**
@@ -42,11 +42,13 @@ continuam preenchidos).
 O avaliador confere/completa os dados e percorre os seis passos
 (identificação, triagem, curadoria de camada, pontuação, filtros
 automáticos, memória de cálculo). No Passo 6, a calculadora mostra a
-**plotagem em quadrantes** (SVG) da demanda; o botão **"Postar avaliação"**
-copia a memória de cálculo em Markdown (já com a plotagem embutida) para a
-área de transferência **e** publica automaticamente como reply no próprio
-tópico, em nome do avaliador logado. Os botões "Copiar markdown" (só copia),
-"Baixar JSON" e "Baixar como SVG" continuam disponíveis como alternativa.
+**plotagem em quadrantes** da demanda; o botão **"Postar avaliação"** publica
+a memória de cálculo como reply no próprio tópico (em nome do avaliador
+logado) e anexa a plotagem como **imagem PNG** — o SVG é rasterizado e enviado
+via upload do Discourse. Se o upload falhar, a resposta é publicada sem a
+imagem (e o PNG pode ser anexado à mão). Os botões "Copiar markdown",
+"Baixar JSON", "Baixar como PNG" e "Baixar como SVG" continuam disponíveis
+como alternativa.
 
 Fundos, texto e bordas acompanham o color scheme ativo do fórum (claro/
 escuro) automaticamente, porque usam as variáveis de tema do próprio
