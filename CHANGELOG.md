@@ -3,6 +3,44 @@
 Este projeto segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
 e [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.2.0] — 2026-07-07
+
+Migração do **Patch 5** do protótipo standalone (`pedrohpms/matriz-sei`): a
+matriz discricionária deixa de produzir uma soma única de 0 a 20 e passa a
+produzir um par independente **valor × esforço**, com plotagem em quadrantes.
+Régua embutida sobe para **2.0.0**.
+
+### Alterado
+
+- **Soma única 0–20 → par valor (0–12) × esforço de entrega (0–8).** O valor
+  ordena a fila; o esforço orienta o tratamento e desempata (menor esforço
+  primeiro). O Passo 4 agora agrupa os cinco critérios em dois blocos
+  visualmente distintos ("Valor" e "Esforço de entrega"), cada um com seu
+  subtotal.
+- **Escalas desinvertidas.** Todos os critérios crescem no sentido natural
+  (não há mais escala invertida). O critério **"Risco"** virou **"Risco de
+  entrega"** (para distingui-lo do risco do ato vinculado, tratado na triagem).
+- **Teto de complexidade por camada virou piso.** A camada estabelece a
+  complexidade **mínima** plausível (uso local 1, grupo 2, vitrine 2, módulo
+  PEN 3, core SEI 4 — travado); nota **abaixo** do piso exige justificativa
+  (*override*). Calibragem em `REGUA_DATA.pisosComplexidade`.
+- **Ato vinculado sai da matriz discricionária.** Em vez de "score fixo 20", a
+  demanda é encaminhada direto ao topo da fila, sem par valor × esforço nem
+  quadrante. No Passo 6, um card explicativo toma o lugar da plotagem.
+- Memória de cálculo (Markdown e JSON) reescrita: `valor`, `esforco`,
+  `quadrante`, `piso_obrigatorio`, `override_complexidade`;
+  `curadoria.tetoComplexidade` → `pisoComplexidade`. Sem mais "score 0–20".
+
+### Adicionado
+
+- **Plotagem valor × esforço em quadrantes** (SVG inline) no Passo 6, com as
+  quatro regiões nomeadas — janela de oportunidade, aposta estratégica,
+  preenchimento de capacidade, revisão e devolutiva — e linhas de corte em
+  valor 6 / esforço 4 (convenção revisável em `REGUA_DATA.cortesPlotagem`).
+- Botão **"Baixar como SVG"** e SVG embutido no Markdown postado
+  (`<!-- svg-plotagem -->`), para a plotagem viajar junto no reply do ParticiPEN.
+- Tooltips dos critérios **Complexidade** e **Risco de entrega**.
+
 ## [1.1.1] — 2026-07-01
 
 ### Documentado

@@ -13,7 +13,7 @@
       <!-- Versão em texto literal (não lida de about.json em runtime) —
            lembrar de atualizar junto com about.json.theme_version a cada release. -->
       <p class="subtitulo">
-        v1.1.1 - GPSEI/DTGES, 2026
+        v1.2.0 - GPSEI/DTGES, 2026
         Passo <strong id="progresso-atual">1</strong> de
         <strong id="progresso-total">6</strong>.
       </p>
@@ -109,8 +109,8 @@
         <p class="ajuda">
           O <strong>ato vinculado</strong> é uma obrigação normativa: a norma
           manda, sem juízo discricionário. Marque os gatilhos acionados — se
-          qualquer um for marcado, a demanda recebe score fixo de 20 (prioridade
-          absoluta), pulando a pontuação.
+          qualquer um for marcado, a demanda fica fora da matriz discricionária
+          (encaminhamento direto ao topo da fila), pulando a pontuação.
         </p>
         <div id="triagem-gatilhos" class="grupo-checkbox"></div>
         <p id="triagem-aviso" class="aviso alerta" role="status" aria-live="polite" hidden></p>
@@ -124,8 +124,8 @@
         <p class="ajuda">
           Camada proposta no Passo 1:
           <strong id="curadoria-proposta">—</strong>.
-          Confirme ou redirecione. A camada validada estabelece o teto da nota
-          de Complexidade no Passo 4.
+          Confirme ou redirecione. A camada validada estabelece o piso da nota
+          de Complexidade no Passo 4 (complexidade mínima plausível).
         </p>
         <div class="campo">
           <label for="curadoria-camada">Camada validada</label>
@@ -140,13 +140,14 @@
       <section class="passo" data-passo="3" hidden>
         <h2>4. Pontuação dos critérios</h2>
         <p class="ajuda">
-          Escolha um descritor por critério. Soma simples (0 a 20),
-          atualizada em tempo real:
-          <strong id="score-live" class="score-live">0 / 20</strong>
+          Duas dimensões independentes: <strong>Valor</strong> (0–12, ordena a
+          fila) e <strong>Esforço de entrega</strong> (0–8, orienta o tratamento e
+          desempata — menor esforço primeiro). Atualizado em tempo real:
+          <strong id="score-live" class="score-live">Valor 0/12 · Esforço 0/8</strong>
         </p>
         <div id="criterios"></div>
 
-        <!-- Override do teto de Complexidade (revelado quando a nota excede o teto) -->
+        <!-- Override do piso de Complexidade (revelado quando a nota fica abaixo do piso) -->
         <div id="override-complexidade" class="override-box" hidden>
           <p id="override-alerta" class="aviso alerta" aria-live="polite"></p>
           <div class="campo">
@@ -185,9 +186,23 @@
       <section class="passo" data-passo="5" hidden>
         <h2>6. Memória de cálculo</h2>
         <p id="memoria-desfecho" class="aviso" role="status" aria-live="polite" hidden></p>
+
+        <!-- Plotagem valor × esforço. Sob ato vinculado dá lugar ao card. -->
+        <div id="plotagem-bloco">
+          <h3 class="plotagem-titulo">Plotagem em quadrantes</h3>
+          <div id="plotagem-svg" class="plotagem-svg" role="img"
+               aria-label="Posição da demanda na matriz valor × esforço"></div>
+          <p id="plotagem-nota" class="plotagem-nota">
+            Linhas de corte: valor ≥ 6 alto, esforço ≥ 4 alto (convenção revisável).
+          </p>
+          <button type="button" id="btn-baixar-svg" class="secundario">Baixar como SVG</button>
+        </div>
+        <div id="plotagem-piso-card" class="piso-card" role="status" hidden></div>
+
         <p class="ajuda">
           Dois formatos com a mesma informação: o Markdown abaixo (para colar no
-          Discourse) e o JSON para download (arquivamento/processamento).
+          Discourse, já com a plotagem embutida) e o JSON para download
+          (arquivamento/processamento).
         </p>
         <div class="acoes-memoria">
           <button type="button" id="btn-postar-avaliacao">Postar avaliação</button>
@@ -204,7 +219,7 @@
     <!-- Navegação fixa -->
     <footer class="rodape-nav">
       <button type="button" id="btn-voltar">← Voltar</button>
-      <span class="score-rodape">Score: <strong id="score-rodape">0 / 20</strong></span>
+      <span class="score-rodape"><strong id="score-rodape">Valor 0/12 · Esforço 0/8</strong></span>
       <button type="button" id="btn-avancar">Avançar →</button>
     </footer>
   </div>

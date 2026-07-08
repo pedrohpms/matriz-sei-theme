@@ -8,11 +8,14 @@ Informações).
 
 O SEI recebe continuamente pedidos de melhoria, correção e evolução vindos de
 diferentes áreas. Para decidir o que priorizar, a equipe de governança do SEI
-(GPSEI) usa uma matriz simples: cinco critérios avaliados numa escala de 0 a
-4, somados para gerar uma pontuação de 0 a 20. Esse componente coloca essa
-calculadora diretamente dentro dos tópicos do ParticiPEN, para que a
-priorização de uma demanda possa ser feita no mesmo lugar onde ela foi
-proposta e discutida.
+(GPSEI) usa uma matriz: cinco critérios avaliados numa escala de 0 a 4,
+agrupados em dois eixos independentes — **valor** (0–12, ordena a fila) e
+**esforço de entrega** (0–8, orienta o tratamento e desempata). A demanda é
+plotada num gráfico valor × esforço com quatro regiões (janela de oportunidade,
+aposta estratégica, preenchimento de capacidade, revisão e devolutiva). Esse
+componente coloca essa calculadora diretamente dentro dos tópicos do
+ParticiPEN, para que a priorização de uma demanda possa ser feita no mesmo
+lugar onde ela foi proposta e discutida.
 
 ## Para quem é
 
@@ -21,7 +24,7 @@ e são responsáveis por triar e priorizar as demandas do SEI. Não é necessár
 conhecimento técnico para usar — instalar o componente é uma operação de
 poucos cliques feita pelo painel administrativo do Discourse.
 
-## O que ele faz (v1.1.1)
+## O que ele faz (v1.2.0)
 
 Nos tópicos da categoria configurada, aparece um botão **"Avaliar"** no
 rodapé do tópico — visível só para quem está logado **e**
@@ -38,11 +41,12 @@ continuam preenchidos).
 
 O avaliador confere/completa os dados e percorre os seis passos
 (identificação, triagem, curadoria de camada, pontuação, filtros
-automáticos, memória de cálculo). No Passo 6, o botão **"Postar avaliação"**
-copia a memória de cálculo em Markdown para a área de transferência **e**
-publica automaticamente como reply no próprio tópico, em nome do avaliador
-logado. Os botões "Copiar markdown" (só copia) e "Baixar JSON" continuam
-disponíveis como alternativa.
+automáticos, memória de cálculo). No Passo 6, a calculadora mostra a
+**plotagem em quadrantes** (SVG) da demanda; o botão **"Postar avaliação"**
+copia a memória de cálculo em Markdown (já com a plotagem embutida) para a
+área de transferência **e** publica automaticamente como reply no próprio
+tópico, em nome do avaliador logado. Os botões "Copiar markdown" (só copia),
+"Baixar JSON" e "Baixar como SVG" continuam disponíveis como alternativa.
 
 Fundos, texto e bordas acompanham o color scheme ativo do fórum (claro/
 escuro) automaticamente, porque usam as variáveis de tema do próprio
@@ -220,9 +224,9 @@ branch que o ParticiPEN acompanha, normalmente `main`):
 Fora de escopo desta versão, mas já mapeado para o futuro:
 
 - **Filtros e busca por demandas já pontuadas.** Uma visão que liste ou
-  filtre tópicos que já passaram pela calculadora (por score, camada,
-  desfecho etc.), hoje inexistente — cada memória de cálculo vive isolada no
-  reply do seu próprio tópico.
+  filtre tópicos que já passaram pela calculadora (por valor, esforço,
+  quadrante, camada, desfecho etc.), hoje inexistente — cada memória de
+  cálculo vive isolada no reply do seu próprio tópico.
 - **Exportação da ata para PDF.** Gerar um PDF consolidado de uma reunião
   de priorização (várias memórias de cálculo juntas), para arquivamento ou
   distribuição fora do Discourse.
