@@ -13,7 +13,7 @@
       <!-- Versão em texto literal (não lida de about.json em runtime) —
            lembrar de atualizar junto com about.json.theme_version a cada release. -->
       <p class="subtitulo">
-        v1.2.1 - GPSEI/DTGES, 2026
+        v1.2.2 - GPSEI/DTGES, 2026
         Passo <strong id="progresso-atual">1</strong> de
         <strong id="progresso-total">6</strong>.
       </p>
@@ -111,6 +111,7 @@
           manda, sem juízo discricionário. Marque os gatilhos acionados — se
           qualquer um for marcado, a demanda fica fora da matriz discricionária
           (encaminhamento direto ao topo da fila), pulando a pontuação.
+          <strong>Se não for ato vinculado, deixe tudo em branco e avance.</strong>
         </p>
         <div id="triagem-gatilhos" class="grupo-checkbox"></div>
         <p id="triagem-aviso" class="aviso alerta" role="status" aria-live="polite" hidden></p>
@@ -125,7 +126,7 @@
           Camada proposta no Passo 1:
           <strong id="curadoria-proposta">—</strong>.
           Confirme ou redirecione. A camada validada estabelece o piso da nota
-          de Complexidade no Passo 4 (complexidade mínima plausível).
+          de Complexidade no Passo 5 (complexidade mínima plausível).
         </p>
         <div class="campo">
           <label for="curadoria-camada">Camada validada</label>
@@ -135,17 +136,30 @@
       </section>
 
       <!-- ============================================================ -->
-      <!-- PASSO 4 — Pontuação dos cinco critérios                      -->
+      <!-- PASSO 4 — Avaliação de valor (bloco Valor)                   -->
       <!-- ============================================================ -->
       <section class="passo" data-passo="3" hidden>
-        <h2>4. Pontuação dos critérios</h2>
+        <h2>4. Avaliação de valor</h2>
         <p class="ajuda">
-          Duas dimensões independentes: <strong>Valor</strong> (0–12, ordena a
-          fila) e <strong>Esforço de entrega</strong> (0–8, orienta o tratamento e
-          desempata — menor esforço primeiro). Atualizado em tempo real:
-          <strong id="score-live" class="score-live">Valor 0/12 · Esforço 0/8</strong>
+          Quanto a demanda entrega de valor — <strong>ordena a fila</strong> (0–12).
+          Escolha um descritor por critério. Subtotal:
+          <strong id="subtotal-valor" class="score-live">0/12</strong>
         </p>
-        <div id="criterios"></div>
+        <div id="criterios-valor"></div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- PASSO 5 — Avaliação de risco (bloco Esforço de entrega)      -->
+      <!-- ============================================================ -->
+      <section class="passo" data-passo="4" hidden>
+        <h2>5. Avaliação de risco</h2>
+        <p class="ajuda">
+          O esforço e o risco de entrega — <strong>orientam o tratamento e
+          desempatam</strong> (menor primeiro; 0–8): complexidade e risco de
+          entrega. Subtotal:
+          <strong id="subtotal-esforco" class="score-live">0/8</strong>
+        </p>
+        <div id="criterios-risco"></div>
 
         <!-- Override do piso de Complexidade (revelado quando a nota fica abaixo do piso) -->
         <div id="override-complexidade" class="override-box" hidden>
@@ -164,30 +178,12 @@
       </section>
 
       <!-- ============================================================ -->
-      <!-- PASSO 5 — Filtros automáticos                                -->
-      <!-- ============================================================ -->
-      <section class="passo" data-passo="4" hidden>
-        <h2>5. Filtros automáticos</h2>
-        <p class="ajuda">
-          Regra: nota <strong>0</strong> em impacto institucional
-          <strong>E</strong> nota <strong>0</strong> em ganho operacional
-          encerra a demanda como conveniência estritamente local.
-        </p>
-        <ul class="resumo-filtros">
-          <li>Impacto institucional: <strong id="filtro-impacto">—</strong></li>
-          <li>Ganho operacional: <strong id="filtro-ganho">—</strong></li>
-        </ul>
-        <p id="filtro-status" class="aviso neutro" role="status" aria-live="polite">—</p>
-      </section>
-
-      <!-- ============================================================ -->
       <!-- PASSO 6 — Memória de cálculo                                 -->
       <!-- ============================================================ -->
       <section class="passo" data-passo="5" hidden>
         <h2>6. Memória de cálculo</h2>
-        <p id="memoria-desfecho" class="aviso" role="status" aria-live="polite" hidden></p>
 
-        <!-- Plotagem valor × esforço. Sob ato vinculado dá lugar ao card. -->
+        <!-- Plotagem valor × esforço (no início do passo). Sob ato vinculado dá lugar ao card. -->
         <div id="plotagem-bloco">
           <h3 class="plotagem-titulo">Plotagem em quadrantes</h3>
           <div id="plotagem-svg" class="plotagem-svg" role="img"
@@ -200,14 +196,17 @@
         </div>
         <div id="plotagem-piso-card" class="piso-card" role="status" hidden></div>
 
+        <p id="memoria-desfecho" class="aviso" role="status" aria-live="polite" hidden></p>
+
         <p class="ajuda">
-          Dois formatos com a mesma informação: o Markdown abaixo (para colar no
-          Discourse, já com a plotagem embutida) e o JSON para download
-          (arquivamento/processamento).
+          <strong>Postar avaliação</strong> publica no tópico do ParticiPEN (com
+          a plotagem como imagem). <strong>Copiar para o Planner</strong> copia
+          em formato rico (Microsoft); <strong>Baixar JSON</strong> arquiva o
+          registro.
         </p>
         <div class="acoes-memoria">
           <button type="button" id="btn-postar-avaliacao">Postar avaliação</button>
-          <button type="button" id="btn-copiar-md">Copiar markdown</button>
+          <button type="button" id="btn-copiar-planner">Copiar para o Planner</button>
           <button type="button" id="btn-baixar-json">Baixar JSON</button>
           <button type="button" id="btn-regenerar" class="secundario">Regenerar</button>
           <span id="copia-feedback" class="feedback" role="status"></span>

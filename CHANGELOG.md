@@ -3,6 +3,31 @@
 Este projeto segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
 e [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.2.2] — 2026-07-08
+
+Reorganização do fluxo e ajustes de saída (paridade com o standalone).
+
+### Alterado
+
+- **Avaliações em passos separados**: o Passo 4 vira **"Avaliação de valor"**
+  (impacto, órgãos, ganho) e o Passo 5 vira **"Avaliação de risco"**
+  (complexidade e risco de entrega). O override do piso passa para o Passo 5.
+- **Filtro 0+0 removido**: não há mais desfecho "conveniência local". O
+  quadrante já classifica (baixo valor + alto esforço = *revisão e devolutiva*;
+  baixo + baixo = *preenchimento de capacidade*). Desfecho agora é só `normal`
+  ou `piso`; `filtros.convenienciaLocal` saiu do JSON.
+- **Plotagem no início do Passo 6** (imagem do quadrante primeiro).
+- **Timestamp do Markdown** em `DD/MM/AAAA, hh:mm:ss` (o JSON mantém ISO 8601).
+- Removida a nota da plotagem do Markdown (a imagem já vai como PNG no reply).
+
+### Adicionado
+
+- Botão **"Copiar para o Planner"** (no lugar de "Copiar markdown"): copia em
+  formato rico (`text/html`, formatação Microsoft) para colar num cartão do
+  Planner, com fallback `text/plain` sem símbolos de Markdown. O ParticiPEN
+  continua atendido pelo "Postar avaliação" (Markdown).
+- Triagem: orientação para deixar em branco e avançar se não for ato vinculado.
+
 ## [1.2.1] — 2026-07-08
 
 ### Corrigido
