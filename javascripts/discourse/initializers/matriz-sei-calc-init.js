@@ -100,7 +100,7 @@ export default {
       const TOTAL_PASSOS = 6;
 
       // Rótulos dos passos (para o indicador visual / stepper).
-      const PASSOS = ["Identificação", "Triagem", "Curadoria", "Pontuação", "Filtros", "Memória"];
+      const PASSOS = ["Identificação", "Triagem", "Curadoria", "Valor", "Esforço", "Memória"];
 
       /* ---------------------------------------------------------------- *
        * Estado da aplicação
@@ -188,15 +188,10 @@ export default {
         return estado.curadoria.camadaValidada === "core-sei";
       }
 
-      // Condição do filtro 0+0 (só conta notas efetivamente 0, não null).
-      function condicaoConvenienciaLocal() {
-        return estado.pontuacao.impacto === 0 && estado.pontuacao.ganho === 0;
-      }
-
-      // Desfecho do fluxo. Piso (ato vinculado) tem precedência sobre o filtro 0+0.
+      // Desfecho do fluxo: ato vinculado (fora da matriz) ou avaliação normal
+      // pela matriz. Não há mais filtro 0+0 — o quadrante classifica o resto.
       function desfechoAtual() {
         if (pisoAcionado()) return "piso";
-        if (condicaoConvenienciaLocal()) return "conveniencia-local";
         return "normal";
       }
 
@@ -421,21 +416,6 @@ export default {
         });
       }
 
-      // Metadados de cada bloco de critérios (Passo 4). O texto do subtotal é
-      // preenchido dinamicamente por atualizarScoreVisivel().
-      const BLOCOS_CRITERIOS = [
-        {
-          chave: "valor",
-          titulo: "Valor",
-          ajuda: "Ordena a fila — quanto maior, mais alta a prioridade.",
-        },
-        {
-          chave: "esforco",
-          titulo: "Esforço de entrega",
-          ajuda: "Orienta o tratamento e desempata (menor esforço primeiro).",
-        },
-      ];
-
       // Renderiza um critério (legenda, descrição, descritores e observação)
       // dentro de um container de bloco.
       function renderCriterio(container, c) {
@@ -484,32 +464,19 @@ export default {
         container.appendChild(bloco);
       }
 
-      // Renderiza os cinco critérios agrupados nos dois blocos (Passo 4): Valor
-      // (0-12, ordena a fila) e Esforço de entrega (0-8, orienta e desempata).
+      // Os dois blocos da matriz são avaliados em passos separados: os critérios
+      // de valor no Passo 4 (#criterios-valor) e os de esforço de entrega no
+      // Passo 5 (#criterios-risco). Cada passo mostra só o seu bloco.
       function renderCriterios() {
-        const container = $("#criterios");
+        renderBlocoCriterios("valor", "#criterios-valor");
+        renderBlocoCriterios("esforco", "#criterios-risco");
+      }
+
+      function renderBlocoCriterios(blocoChave, seletor) {
+        const container = $(seletor);
+        if (!container) return;
         container.innerHTML = "";
-
-        BLOCOS_CRITERIOS.forEach((b) => {
-          const criterios = criteriosDoBloco(b.chave);
-          if (!criterios.length) return;
-
-          const secao = document.createElement("section");
-          secao.className = "bloco-criterios";
-          secao.dataset.bloco = b.chave;
-
-          const cabecalho = document.createElement("div");
-          cabecalho.className = "bloco-cabecalho";
-          cabecalho.innerHTML = `
-            <h3 class="bloco-titulo">${b.titulo}
-              <span class="bloco-subtotal" id="subtotal-${b.chave}">0/${criterios.length * 4}</span>
-            </h3>
-            <p class="bloco-ajuda">${b.ajuda}</p>`;
-          secao.appendChild(cabecalho);
-
-          criterios.forEach((c) => renderCriterio(secao, c));
-          container.appendChild(secao);
-        });
+        criteriosDoBloco(blocoChave).forEach((c) => renderCriterio(container, c));
       }
 
       /* ---------------------------------------------------------------- *
@@ -535,8 +502,7 @@ export default {
         // Atualizações específicas ao entrar em certos passos
         if (estado.passoAtual === 1) atualizarAvisoTriagem();
         if (estado.passoAtual === 2) sincronizarCuradoria();
-        if (estado.passoAtual === 3) atualizarPisoComplexidade();
-        if (estado.passoAtual === 4) atualizarPainelFiltros();
+        if (estado.passoAtual === 4) atualizarPisoComplexidade();
         if (estado.passoAtual === 5) { gerarMemoria(); atualizarDesfechoMemoria(); }
 
         renderStepper();
@@ -717,15 +683,6 @@ export default {
               + "independentemente do par valor × esforço. "
               + '<button type="button" class="link" id="retomar-triagem">Voltar à triagem</button>';
             break;
-          case "conveniencia-local":
-            el.className = "aviso alerta";
-            el.innerHTML =
-              "<strong>Fluxo encerrado por filtro automático.</strong> Demanda "
-              + "tratada como conveniência estritamente local — não disputa fila, e é "
-              + "encaminhada à camada de uso local. Valor apurado: " + v + "/" + maxV
-              + " · Esforço: " + e + "/" + maxE + ". "
-              + '<button type="button" class="link" id="retomar-pontuacao">Voltar à pontuação</button>';
-            break;
           default:
             el.className = "aviso ok";
             el.innerHTML =
@@ -744,31 +701,6 @@ export default {
         select.value = estado.curadoria.camadaValidada || "";
         $("#curadoria-proposta").textContent =
           rotuloPorValor(CAMADAS, estado.identificacao.camada);
-      }
-
-      // Passo 5 — filtro 0+0. Aciona o desfecho "conveniência local" e mostra
-      // mensagem informativa com o score parcial.
-      function atualizarPainelFiltros() {
-        const impacto = estado.pontuacao.impacto;
-        const ganho = estado.pontuacao.ganho;
-        $("#filtro-impacto").textContent = impacto === null ? "—" : impacto;
-        $("#filtro-ganho").textContent = ganho === null ? "—" : ganho;
-
-        const alvo = $("#filtro-status");
-        if (impacto === null || ganho === null) {
-          alvo.textContent = "Pontue impacto institucional e ganho operacional para avaliar o filtro.";
-          alvo.className = "aviso neutro";
-        } else if (condicaoConvenienciaLocal()) {
-          alvo.textContent =
-            "Filtro acionado — Demanda tratada como conveniência estritamente local "
-            + "— não disputa fila, e é encaminhada à camada de uso local. Valor "
-            + "parcial: " + calcularValor() + "/" + maxBloco("valor")
-            + ". Volte à pontuação se classificou errado.";
-          alvo.className = "aviso alerta";
-        } else {
-          alvo.textContent = "Filtro não acionado — a demanda segue para a memória de cálculo com o par valor × esforço apurado.";
-          alvo.className = "aviso ok";
-        }
       }
 
       /* ---------------------------------------------------------------- *
@@ -1152,7 +1084,6 @@ export default {
 
       function rotuloDesfecho(codigo) {
         if (codigo === "piso") return "Ato vinculado";
-        if (codigo === "conveniencia-local") return "Conveniência estritamente local";
         return "Avaliação completa pela matriz";
       }
 
@@ -1161,10 +1092,6 @@ export default {
           return "Demanda enquadrada como ato vinculado — fora da matriz "
             + "discricionária. Encaminhamento direto ao topo da fila, independentemente "
             + "do par valor × esforço.";
-        }
-        if (codigo === "conveniencia-local") {
-          return "Demanda tratada como conveniência estritamente local — não disputa "
-            + "fila, e é encaminhada à camada de uso local.";
         }
         return "Avaliação completa pela matriz.";
       }
@@ -1185,6 +1112,14 @@ export default {
         const offset = `${sinal}${pad(Math.floor(abs / 60))}:${pad(abs % 60)}`;
         return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
           + `T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}${offset}`;
+      }
+
+      // Formata um timestamp ISO 8601 (timestampLocal) como "DD/MM/AAAA, hh:mm:ss"
+      // para exibição no Markdown. O JSON mantém o ISO (para processamento).
+      function timestampParaBR(iso) {
+        const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
+        if (!m) return iso;
+        return `${m[3]}/${m[2]}/${m[1]}, ${m[4]}:${m[5]}:${m[6]}`;
       }
 
       // Constrói o objeto-fonte da memória de cálculo. Tudo que aparece no
@@ -1283,10 +1218,6 @@ export default {
               acionado: desfecho === "piso",
               passo: 2,
               gatilhos: pisos.map((p) => p.rotulo),
-            },
-            convenienciaLocal: {
-              acionado: desfecho === "conveniencia-local",
-              passo: 5,
             },
           },
           overrides,
@@ -1440,18 +1371,6 @@ export default {
             + `- **Evidência/observação:** ${obs}${linhaOvr}`;
         }).join("\n\n");
 
-        const acionados = [];
-        if (m.filtros.pisoObrigatorio.acionado) {
-          acionados.push(
-            `Ato vinculado (Passo ${m.filtros.pisoObrigatorio.passo}): `
-            + m.filtros.pisoObrigatorio.gatilhos.join(", "),
-          );
-        }
-        if (m.filtros.convenienciaLocal.acionado) {
-          acionados.push(`Conveniência estritamente local (Passo ${m.filtros.convenienciaLocal.passo})`);
-        }
-        const filtrosTexto = acionados.length ? acionados.join("; ") : "Nenhum";
-
         const overridesTexto = m.overrides.length
           ? m.overrides.map((o) =>
               `${o.rotulo}: nota ${o.nota} abaixo do piso ${o.piso} (camada ${o.camada.rotulo}) `
@@ -1475,10 +1394,10 @@ export default {
           : "(nenhum)";
 
         // Sob ato vinculado não há pontuação: a seção de critérios dá lugar a um
-        // bloco de enquadramento; do contrário, sai o par valor × esforço, o
-        // quadrante e o SVG da plotagem embutido.
+        // bloco de enquadramento; do contrário, sai o par valor × esforço e o
+        // quadrante (a imagem da plotagem é anexada ao publicar / botões PNG/SVG).
         const rodapeMeta =
-          `- **Timestamp (ISO 8601):** ${m.timestamp}\n`
+          `- **Data/hora:** ${timestampParaBR(m.timestamp)}\n`
           + `- **Avaliador:** ${m.avaliador}\n`
           + `- **Versão da régua:** ${m.versaoRegua}`;
 
@@ -1494,12 +1413,6 @@ ${rodapeMeta}`;
           const overrideLinha = m.override_complexidade
             ? `\n- **Override do piso de complexidade:** ${m.override_complexidade}`
             : "";
-          // A plotagem NÃO entra como SVG aqui: o Discourse mostraria o código
-          // cru numa caixa. A imagem (PNG) é anexada ao publicar (ver
-          // postarAvaliacao); localmente há os botões "Baixar como PNG/SVG".
-          const plotagem = m.quadrante
-            ? `\n\n_Plotagem: quadrante ${m.quadrante.rotulo} (linhas de corte valor ≥ ${CORTES.valor}, esforço ≥ ${CORTES.esforco}). Imagem anexada no reply publicado; nas exportações locais, use "Baixar como PNG/SVG"._`
-            : "";
           corpoFinal = `## Critérios
 
 ${blocosCriterios}
@@ -1508,9 +1421,8 @@ ${blocosCriterios}
 - **Valor:** ${m.valor.texto}
 - **Esforço de entrega:** ${m.esforco.texto}
 - **Quadrante:** ${m.quadrante.rotulo}
-- **Filtros acionados:** ${filtrosTexto}
 - **Overrides:** ${overridesTexto}${overrideLinha}
-${rodapeMeta}${plotagem}`;
+${rodapeMeta}`;
         }
 
         return `# Memória de cálculo — Matriz de priorização do SEI
@@ -1615,9 +1527,8 @@ ${corpoFinal}
         setTimeout(() => { feedback.textContent = ""; }, ms);
       }
 
-      // Copia um texto para a área de transferência. Lança se falhar (quem
-      // chama decide a mensagem — copiarMarkdown() e postarAvaliacao() usam
-      // textos diferentes para o mesmo caso de falha).
+      // Copia um texto (puro) para a área de transferência. Usada por
+      // postarAvaliacao() para copiar o texto-base ao publicar. Lança se falhar.
       async function copiarTextoParaClipboard(texto) {
         if (navigator.clipboard && navigator.clipboard.writeText) {
           await navigator.clipboard.writeText(texto);
@@ -1630,12 +1541,63 @@ ${corpoFinal}
         }
       }
 
-      async function copiarMarkdown() {
+      // Converte o Markdown da memória (subconjunto conhecido: #/##/### títulos,
+      // **negrito**, _itálico_, listas "- ") em HTML, para copiar como texto rico.
+      // O Microsoft Planner (e Word/Outlook/Teams) lê o formato text/html do
+      // clipboard e renderiza a formatação, em vez de mostrar os símbolos do Markdown.
+      function markdownParaHtml(md) {
+        const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        const inline = (s) => esc(s)
+          .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+          .replace(/_(.+?)_/g, "<em>$1</em>");
+        const out = [];
+        let emLista = false;
+        const fechaLista = () => { if (emLista) { out.push("</ul>"); emLista = false; } };
+        md.split("\n").forEach((ln) => {
+          if (/^### /.test(ln)) { fechaLista(); out.push("<h3>" + inline(ln.slice(4)) + "</h3>"); }
+          else if (/^## /.test(ln)) { fechaLista(); out.push("<h2>" + inline(ln.slice(3)) + "</h2>"); }
+          else if (/^# /.test(ln)) { fechaLista(); out.push("<h1>" + inline(ln.slice(2)) + "</h1>"); }
+          else if (/^\s*-\s+/.test(ln)) { if (!emLista) { out.push("<ul>"); emLista = true; } out.push("<li>" + inline(ln.replace(/^\s*-\s+/, "")) + "</li>"); }
+          else if (ln.trim() === "") { fechaLista(); }
+          else { fechaLista(); out.push("<p>" + inline(ln) + "</p>"); }
+        });
+        fechaLista();
+        return "<div>" + out.join("") + "</div>";
+      }
+
+      // Versão em texto puro (sem símbolos de Markdown), para o fallback text/plain.
+      function markdownParaTextoLimpo(md) {
+        return md
+          .replace(/^#{1,6}\s+/gm, "")
+          .replace(/\*\*(.+?)\*\*/g, "$1")
+          .replace(/_(.+?)_/g, "$1");
+      }
+
+      // Copia a memória em formato rico (Microsoft/HTML) para colar no Planner. O
+      // ParticiPEN (Discourse) usa Markdown (via "Postar avaliação") — este botão
+      // é para o Planner, que renderiza a formatação Microsoft. Fallback:
+      // text/plain sem símbolos.
+      async function copiarParaPlanner() {
         if (!memoriaAtual) gerarMemoria();
-        const texto = $("#memoria-saida").value;
+        const md = $("#memoria-saida").value;
+        const html = markdownParaHtml(md);
+        const plano = markdownParaTextoLimpo(md);
         try {
-          await copiarTextoParaClipboard(texto);
-          flash("Markdown copiado!");
+          if (navigator.clipboard && window.ClipboardItem) {
+            const item = new ClipboardItem({
+              "text/html": new Blob([html], { type: "text/html" }),
+              "text/plain": new Blob([plano], { type: "text/plain" }),
+            });
+            await navigator.clipboard.write([item]);
+          } else if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(plano);
+          } else {
+            const ta = $("#memoria-saida");
+            ta.focus();
+            ta.select();
+            document.execCommand("copy");
+          }
+          flash("Texto formatado copiado — cole no Planner.");
         } catch (e) {
           flash("Não foi possível copiar automaticamente — selecione e copie manualmente.");
         }
@@ -1861,19 +1823,22 @@ ${corpoFinal}
           estado.curadoria.camadaValidada = e.target.value;
         });
 
-        // Passo 4 — pontuação (delegação de evento)
-        $("#criterios").addEventListener("change", (e) => {
-          const chave = e.target.dataset.criterio;
-          if (!chave) return;
-          estado.pontuacao[chave] = Number(e.target.value);
-          if (chave === "complexidade") atualizarPisoComplexidade();
-          atualizarScoreVisivel();
-        });
-
-        // Passo 4 — evidência/observação por critério (delegação de evento)
-        $("#criterios").addEventListener("input", (e) => {
-          const chave = e.target.dataset.observacao;
-          if (chave) estado.observacoes[chave] = e.target.value;
+        // Pontuação — delegação de evento nos dois containers de critérios:
+        // #criterios-valor (Passo 4) e #criterios-risco (Passo 5).
+        ["#criterios-valor", "#criterios-risco"].forEach((sel) => {
+          const cont = $(sel);
+          if (!cont) return;
+          cont.addEventListener("change", (e) => {
+            const chave = e.target.dataset.criterio;
+            if (!chave) return;
+            estado.pontuacao[chave] = Number(e.target.value);
+            if (chave === "complexidade") atualizarPisoComplexidade();
+            atualizarScoreVisivel();
+          });
+          cont.addEventListener("input", (e) => {
+            const chave = e.target.dataset.observacao;
+            if (chave) estado.observacoes[chave] = e.target.value;
+          });
         });
 
         // Passo 4 — justificativa do override
@@ -1886,15 +1851,14 @@ ${corpoFinal}
         $("#btn-avancar").addEventListener("click", avancar);
         $("#btn-voltar").addEventListener("click", voltar);
 
-        // Passo 6 — atalhos de retomada no banner de desfecho (delegação)
+        // Passo 6 — atalho de retomada no banner de desfecho (delegação)
         $("#memoria-desfecho").addEventListener("click", (e) => {
           if (e.target.id === "retomar-triagem") mostrarPasso(1);
-          if (e.target.id === "retomar-pontuacao") mostrarPasso(3);
         });
 
         // Passo 6 — saídas
         $("#btn-postar-avaliacao").addEventListener("click", postarAvaliacao);
-        $("#btn-copiar-md").addEventListener("click", copiarMarkdown);
+        $("#btn-copiar-planner").addEventListener("click", copiarParaPlanner);
         $("#btn-baixar-json").addEventListener("click", baixarJSON);
         $("#btn-baixar-png").addEventListener("click", baixarPNG);
         $("#btn-baixar-svg").addEventListener("click", baixarSVG);
@@ -1909,8 +1873,8 @@ ${corpoFinal}
       function avancar() {
         const atual = estado.passoAtual;
 
-        // Passo 4 — override sem justificativa não avança.
-        if (atual === 3 && estado.override.ativo && !estado.override.justificativa.trim()) {
+        // Passo 5 — override sem justificativa não avança.
+        if (atual === 4 && estado.override.ativo && !estado.override.justificativa.trim()) {
           const pend = $("#override-pendencia");
           if (pend) pend.hidden = false;
           return;
