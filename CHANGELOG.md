@@ -10,7 +10,7 @@ Reorganização do fluxo e ajustes de saída (paridade com o standalone).
 ### Alterado
 
 - **Avaliações em passos separados**: o Passo 4 vira **"Avaliação de valor"**
-  (impacto, órgãos, ganho) e o Passo 5 vira **"Avaliação de risco"**
+  (impacto, órgãos, ganho) e o Passo 5 vira **"Avaliação de esforço"**
   (complexidade e risco de entrega). O override do piso passa para o Passo 5.
 - **Filtro 0+0 removido**: não há mais desfecho "conveniência local". O
   quadrante já classifica (baixo valor + alto esforço = *revisão e devolutiva*;

@@ -41,7 +41,7 @@ continuam preenchidos).
 
 O avaliador confere/completa os dados e percorre os seis passos
 (identificação, triagem, curadoria de camada, **avaliação de valor**,
-**avaliação de risco**, memória de cálculo). No Passo 6, a plotagem em
+**avaliação de esforço**, memória de cálculo). No Passo 6, a plotagem em
 quadrantes aparece no início; o botão **"Postar avaliação"** publica a memória
 de cálculo como reply no próprio tópico (em nome do avaliador logado) e anexa a
 plotagem como **imagem PNG** — o SVG é rasterizado e enviado via upload do

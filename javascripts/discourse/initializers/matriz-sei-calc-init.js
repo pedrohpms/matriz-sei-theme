@@ -100,7 +100,7 @@ export default {
       const TOTAL_PASSOS = 6;
 
       // Rótulos dos passos (para o indicador visual / stepper).
-      const PASSOS = ["Identificação", "Triagem", "Curadoria", "Valor", "Risco", "Memória"];
+      const PASSOS = ["Identificação", "Triagem", "Curadoria", "Valor", "Esforço", "Memória"];
 
       /* ---------------------------------------------------------------- *
        * Estado da aplicação
