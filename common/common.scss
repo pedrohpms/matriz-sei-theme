@@ -501,6 +501,9 @@
   .aviso.alerta { background: var(--cor-alerta-fundo); color: var(--cor-alerta); }
   .aviso.alerta::before { content: "⚠"; }
 
+  /* Pendências do passo (ao tentar avançar sem preencher os obrigatórios) */
+  .validacao-aviso { margin-top: 1rem; font-weight: 600; }
+
   /* --- Memória de cálculo (passo 6) ------------------------------------- */
   .acoes-memoria {
     display: flex;
