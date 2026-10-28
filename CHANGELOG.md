@@ -3,6 +3,25 @@
 Este projeto segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
 e [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.3.0] — 2026-10-28
+
+Ajustes pedidos pela equipe após uso (paridade com o standalone).
+
+### Adicionado
+
+- **Validação de preenchimento por passo.** O Avançar só segue com o passo
+  completo e, se faltar algo, a calculadora lista o que falta ("Preencha antes
+  de avançar: ..."). Obrigatórios: Título, Natureza, Trilha e Camada proposta
+  (Passo 1); Camada validada (Passo 3); os três critérios de valor (Passo 4);
+  os dois critérios de esforço (Passo 5). A **Triagem** é a única exceção - em
+  branco significa que não é ato vinculado. Antes, todos os passos avançavam
+  vazios e a memória de cálculo era gerada sem refletir a avaliação.
+
+### Alterado
+
+- Descritores 1-4 do **Impacto institucional** passam a ligar as dimensões com
+  "e/ou". Régua embutida → **2.1.0**.
+
 ## [1.2.2] — 2026-07-08
 
 Reorganização do fluxo e ajustes de saída (paridade com o standalone).

@@ -24,7 +24,7 @@ e são responsáveis por triar e priorizar as demandas do SEI. Não é necessár
 conhecimento técnico para usar - instalar o componente é uma operação de
 poucos cliques feita pelo painel administrativo do Discourse.
 
-## O que ele faz (v1.2.2)
+## O que ele faz (v1.3.0)
 
 Nos tópicos da categoria configurada, aparece um botão **"Avaliar"** no
 rodapé do tópico - visível só para quem está logado **e**
@@ -49,6 +49,12 @@ Discourse. Se o upload falhar, a resposta é publicada sem a imagem (e o PNG
 pode ser anexado à mão). **"Copiar para o Planner"** copia a memória em formato
 rico (Microsoft) para colar num cartão do Planner; "Baixar JSON", "Baixar como
 PNG" e "Baixar como SVG" também continuam disponíveis.
+
+O botão **Avançar** só segue com os itens obrigatórios do passo preenchidos; se
+faltar algo, a calculadora lista o que falta. Obrigatórios: Título, Natureza,
+Trilha e Camada proposta (Passo 1), Camada validada (Passo 3) e todos os
+critérios dos Passos 4 e 5. A **Triagem** é a única etapa que pode avançar em
+branco (em branco = não é ato vinculado).
 
 Fundos, texto e bordas acompanham o color scheme ativo do fórum (claro/
 escuro) automaticamente, porque usam as variáveis de tema do próprio
